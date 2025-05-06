@@ -1,0 +1,297 @@
+{
+    "info": {
+        "name": "CareConnect API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Test Doctor\",\n    \"email\": \"doctor@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"role\": \"doctor\",\n    \"phone\": \"+1234567890\",\n    \"address\": \"123 Medical St\",\n    \"specialization\": \"Cardiology\",\n    \"license_number\": \"DOC123\",\n    \"qualifications\": \"MD, PhD\",\n    \"consultation_fee\": 100.00\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/register",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "register"]
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"doctor@example.com\",\n    \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/logout",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "logout"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Doctors",
+            "item": [
+                {
+                    "name": "Get All Doctors",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctors",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "doctors"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Doctor Appointments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctors/1/appointments",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "doctors", "1", "appointments"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Patients",
+            "item": [
+                {
+                    "name": "Create Patient",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Test Patient\",\n    \"email\": \"patient@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"role\": \"patient\",\n    \"phone\": \"+1987654321\",\n    \"address\": \"456 Patient St\",\n    \"date_of_birth\": \"1990-01-01\",\n    \"gender\": \"male\",\n    \"blood_group\": \"O+\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/patients",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "patients"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Appointments",
+            "item": [
+                {
+                    "name": "Create Appointment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"doctor_id\": 1,\n    \"patient_id\": 2,\n    \"appointment_date\": \"2024-03-25\",\n    \"time_slot\": \"10:00 AM\",\n    \"notes\": \"Regular checkup\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "appointments"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Prescriptions",
+            "item": [
+                {
+                    "name": "Create Prescription",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"doctor_id\": 1,\n    \"patient_id\": 2,\n    \"appointment_id\": 1,\n    \"medicines\": \"Medicine A, Medicine B\",\n    \"dosage\": \"Once daily\",\n    \"duration\": \"7 days\",\n    \"notes\": \"Take after meals\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/prescriptions",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "prescriptions"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Bills",
+            "item": [
+                {
+                    "name": "Create Bill",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"appointment_id\": 1,\n    \"amount\": 100.00,\n    \"payment_method\": \"credit_card\",\n    \"payment_details\": \"Transaction ID: 123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/bills",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "bills"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Messages",
+            "item": [
+                {
+                    "name": "Send Message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"receiver_id\": 2,\n    \"content\": \"Hello, this is a test message\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/messages",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "messages"]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+} 

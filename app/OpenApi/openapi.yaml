@@ -1,0 +1,74 @@
+openapi: 3.0.0
+info:
+  title: CareConnect API Documentation
+  description: API documentation for CareConnect Healthcare Management System
+  version: 1.0.0
+  contact:
+    email: support@careconnect.com
+
+servers:
+  - url: http://127.0.0.1:8000
+    description: API Server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Error message
+        errors:
+          type: object
+
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Success message
+        data:
+          type: object
+
+paths:
+  /api:
+    get:
+      summary: API Root
+      responses:
+        '200':
+          description: API is running
+
+tags:
+  - name: Authentication
+    description: API Endpoints for user authentication
+  - name: User Profile
+    description: API Endpoints for user profile management
+  - name: Doctors
+    description: API Endpoints for doctor management
+  - name: Patients
+    description: API Endpoints for patient management
+  - name: Appointments
+    description: API Endpoints for appointment management
+  - name: Prescriptions
+    description: API Endpoints for prescription management
+  - name: Reports
+    description: API Endpoints for medical reports
+  - name: Feedbacks
+    description: API Endpoints for feedback management
+  - name: Chats
+    description: API Endpoints for chat management
+  - name: Messages
+    description: API Endpoints for message management
+  - name: Sports
+    description: API Endpoints for sport recommendations
+  - name: Foods
+    description: API Endpoints for food recommendations 

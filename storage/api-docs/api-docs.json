@@ -1,0 +1,4349 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "CareConnect API Documentation",
+        "description": "API documentation for CareConnect Healthcare Management System",
+        "version": "1.0.0",
+        "contact": {
+            "email": "blissbonheur1@gmail.com"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000/api/v1",
+            "description": "API Server V1"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Error message"
+                    },
+                    "errors": {
+                        "type": "object"
+                    }
+                }
+            },
+            "Success": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Success message"
+                    },
+                    "data": {
+                        "type": "object"
+                    }
+                }
+            },
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": ["patient", "doctor", "admin"]
+                    }
+                }
+            }
+        }
+    },
+    "paths": {
+        "/api": {
+            "get": {
+                "summary": "API Root",
+                "responses": {
+                    "200": {
+                        "description": "API is running"
+                    }
+                }
+            }
+        },
+        "/api/register": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Register a new user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["name", "email", "password", "role"],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": ["patient", "doctor", "admin"]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Login user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["email", "password"],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "description": "User's email address"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "description": "User's password"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "token": {
+                                            "type": "string",
+                                            "description": "JWT access token"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Logout user",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Logout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/patient/create": {
+            "post": {
+                "tags": ["Patients"],
+                "summary": "Create a Patient Account",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["user_id", "medical_history", "bloodType", "emergencyContact", "insurance", "weight", "height"],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer",
+                                        "description": "ID of the user account"
+                                    },
+                                    "medical_history": {
+                                        "type": "string",
+                                        "description": "Patient's medical history"
+                                    },
+                                    "allergies": {
+                                        "type": "string",
+                                        "description": "Patient's allergies"
+                                    },
+                                    "bloodType": {
+                                        "type": "string",
+                                        "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+                                        "description": "Patient's blood type"
+                                    },
+                                    "emergencyContact": {
+                                        "type": "object",
+                                        "required": ["name", "relation", "phone"],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "description": "Name of emergency contact"
+                                            },
+                                            "relation": {
+                                                "type": "string",
+                                                "description": "Relationship to patient"
+                                            },
+                                            "phone": {
+                                                "type": "string",
+                                                "description": "Emergency contact phone number"
+                                            }
+                                        }
+                                    },
+                                    "insurance": {
+                                        "type": "object",
+                                        "required": ["provider", "policyNumber"],
+                                        "properties": {
+                                            "provider": {
+                                                "type": "string",
+                                                "description": "Insurance provider name"
+                                            },
+                                            "policyNumber": {
+                                                "type": "string",
+                                                "description": "Insurance policy number"
+                                            }
+                                        }
+                                    },
+                                    "weight": {
+                                        "type": "number",
+                                        "description": "Patient's weight in kg"
+                                    },
+                                    "height": {
+                                        "type": "number",
+                                        "description": "Patient's height in cm"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Patient account created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/patient/all": {
+            "get": {
+                "tags": ["Patients"],
+                "summary": "List all Patient Accounts",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all patient accounts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "medical_history": {
+                                                        "type": "string"
+                                                    },
+                                                    "allergies": {
+                                                        "type": "string"
+                                                    },
+                                                    "blood_type": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/patient/getPatient/{id}": {
+            "get": {
+                "tags": ["Patients"],
+                "summary": "Get Patient Account by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Patient account details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "medical_history": {
+                                                    "type": "string"
+                                                },
+                                                "allergies": {
+                                                    "type": "string"
+                                                },
+                                                "blood_type": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Patient not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/patient/getPatientByUser/{id}": {
+            "get": {
+                "tags": ["Patients"],
+                "summary": "Get Patient Account by User Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "User ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Patient account details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "medical_history": {
+                                                    "type": "string"
+                                                },
+                                                "allergies": {
+                                                    "type": "string"
+                                                },
+                                                "blood_type": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Patient not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/patient/profile/{id}": {
+            "put": {
+                "tags": ["Patients"],
+                "summary": "Update Profile of patient",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "medical_history": {
+                                        "type": "string",
+                                        "description": "Updated medical history"
+                                    },
+                                    "allergies": {
+                                        "type": "string",
+                                        "description": "Updated allergies"
+                                    },
+                                    "blood_type": {
+                                        "type": "string",
+                                        "description": "Updated blood type"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Patient profile updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Patient not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/patient/delete/{id}": {
+            "delete": {
+                "tags": ["Patients"],
+                "summary": "Delete a Patient Account",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Patient account deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Patient not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health/create": {
+            "post": {
+                "tags": ["Health"],
+                "summary": "Create a Health Application",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["patient", "chronicDiseases", "allergies", "medications", "familyHistory", "lifestyle"],
+                                "properties": {
+                                    "patient": {
+                                        "type": "string",
+                                        "description": "ID of the patient"
+                                    },
+                                    "chronicDiseases": {
+                                        "type": "string",
+                                        "description": "Patient's chronic diseases"
+                                    },
+                                    "allergies": {
+                                        "type": "string",
+                                        "enum": ["None", "Mild", "Moderate", "Severe"],
+                                        "description": "Severity of patient's allergies"
+                                    },
+                                    "medications": {
+                                        "type": "integer",
+                                        "description": "Number of current medications"
+                                    },
+                                    "familyHistory": {
+                                        "type": "string",
+                                        "description": "Patient's family medical history"
+                                    },
+                                    "lifestyle": {
+                                        "type": "string",
+                                        "description": "Patient's lifestyle information"
+                                    },
+                                    "updatedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "Last update timestamp"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Health application created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health/all": {
+            "get": {
+                "tags": ["Health"],
+                "summary": "List all Health Applications",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all health applications",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "patient": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "appointment_date": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": ["scheduled", "completed", "cancelled"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health/health/{healthId}": {
+            "get": {
+                "tags": ["Health"],
+                "summary": "Get Health by patient Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "healthId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Health application ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Health application details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "patient": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "doctor": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "appointment_date": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "reason": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": ["scheduled", "completed", "cancelled"]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Health application not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health/update/{healthId}": {
+            "put": {
+                "tags": ["Health"],
+                "summary": "Update Health",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "healthId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Health application ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "appointment_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "Updated appointment date and time"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Updated reason for the appointment"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": ["scheduled", "completed", "cancelled"],
+                                        "description": "Updated status of the appointment"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Health application updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Health application not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health/delete/{healthId}": {
+            "delete": {
+                "tags": ["Health"],
+                "summary": "Delete a Health Application",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "healthId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Health application ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Health application deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Health application not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctors": {
+            "get": {
+                "tags": ["Doctors"],
+                "summary": "Get all doctors",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of doctors",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "specialization": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointments": {
+            "post": {
+                "tags": ["Appointments"],
+                "summary": "Create a new appointment",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["doctor_id", "patient_id", "appointment_date"],
+                                "properties": {
+                                    "doctor_id": {
+                                        "type": "integer"
+                                    },
+                                    "patient_id": {
+                                        "type": "integer"
+                                    },
+                                    "appointment_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "reason": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Appointment created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": ["Appointments"],
+                "summary": "Get all appointments",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of appointments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "patient": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "appointment_date": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": ["scheduled", "completed", "cancelled"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/create": {
+            "post": {
+                "tags": ["Appointments"],
+                "summary": "Create an Appointment Details",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["patient", "doctor", "date", "timeSlot", "reason"],
+                                "properties": {
+                                    "patient": {
+                                        "type": "string",
+                                        "description": "ID of the patient"
+                                    },
+                                    "doctor": {
+                                        "type": "string",
+                                        "description": "ID of the doctor"
+                                    },
+                                    "date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Appointment date (YYYY-MM-DD)"
+                                    },
+                                    "timeSlot": {
+                                        "type": "string",
+                                        "description": "Appointment time slot"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Reason for the appointment"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": ["Pending", "Confirmed", "Cancelled", "Completed"],
+                                        "description": "Status of the appointment",
+                                        "default": "Pending"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "description": "Additional notes for the appointment"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Appointment created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/all": {
+            "get": {
+                "tags": ["Appointments"],
+                "summary": "List all Appointments",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all appointments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "patient": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "appointment_date": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": ["scheduled", "completed", "cancelled"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/get/{id}": {
+            "get": {
+                "tags": ["Appointments"],
+                "summary": "Get Appointment by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Appointment details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "patient": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "doctor": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "appointment_date": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "reason": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": ["scheduled", "completed", "cancelled"]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/byPatient/{id}": {
+            "get": {
+                "tags": ["Appointments"],
+                "summary": "Get Appointment by Patient Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of patient's appointments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "appointment_date": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": ["scheduled", "completed", "cancelled"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/filter": {
+            "get": {
+                "tags": ["Appointments"],
+                "summary": "Filter Appointments",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["scheduled", "completed", "cancelled"]
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "description": "Filter by start date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "description": "Filter by end date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Filtered appointments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "patient": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "appointment_date": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": ["scheduled", "completed", "cancelled"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/update/{id}": {
+            "put": {
+                "tags": ["Appointments"],
+                "summary": "Update Appointment",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "appointment_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "Updated appointment date"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Updated reason"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Appointment updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/status/{id}": {
+            "put": {
+                "tags": ["Appointments"],
+                "summary": "Update Appointment Status",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["status"],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": ["scheduled", "completed", "cancelled"],
+                                        "description": "New appointment status"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Appointment status updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/appoint/{id}/reschedule": {
+            "put": {
+                "tags": ["Appointments"],
+                "summary": "Reschedule Appointment",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["new_appointment_date"],
+                                "properties": {
+                                    "new_appointment_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "New appointment date and time"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Reason for rescheduling"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Appointment rescheduled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/appoint/{id}/reply": {
+            "put": {
+                "tags": ["Appointments"],
+                "summary": "Reply to the Reschedule Appointment",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["accepted"],
+                                "properties": {
+                                    "accepted": {
+                                        "type": "boolean",
+                                        "description": "Whether to accept the reschedule request"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "description": "Reply message"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reply sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/appointment/delete/{id}": {
+            "delete": {
+                "tags": ["Appointments"],
+                "summary": "Delete a appointment",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Appointment deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chat/create": {
+            "post": {
+                "tags": ["Chats"],
+                "summary": "Create a Send chat",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["participant_id"],
+                                "properties": {
+                                    "participant_id": {
+                                        "type": "integer",
+                                        "description": "ID of the chat participant"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Chat created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chat/message/{chatId}": {
+            "post": {
+                "tags": ["Messages"],
+                "summary": "Create a message",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "chatId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Chat ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["content"],
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "description": "Message content"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Message sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chat/{chatId}": {
+            "get": {
+                "tags": ["Chats"],
+                "summary": "Get Chats by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "chatId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Chat ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat details with messages",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "participant": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "messages": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "content": {
+                                                                "type": "string"
+                                                            },
+                                                            "sender": {
+                                                                "$ref": "#/components/schemas/User"
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chat/user/{userId}": {
+            "get": {
+                "tags": ["Chats"],
+                "summary": "Get UserChat by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "description": "User ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user's chats",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "participant": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "last_message": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "content": {
+                                                                "type": "string"
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chat/read/{chatId}": {
+            "put": {
+                "tags": ["Chats"],
+                "summary": "Mark all messages as read in a chat",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "chatId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Chat ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Messages marked as read successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedback/create": {
+            "post": {
+                "tags": ["Feedbacks"],
+                "summary": "Create a feedback",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["content"],
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "description": "Feedback content"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5,
+                                        "description": "Rating (1-5)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Feedback created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedback/user/{userId}": {
+            "get": {
+                "tags": ["Feedbacks"],
+                "summary": "Get Feedback by user Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "description": "User ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user's feedbacks",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "content": {
+                                                        "type": "string"
+                                                    },
+                                                    "rating": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 5
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": ["pending", "approved", "rejected"]
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedback/{feedbackId}": {
+            "get": {
+                "tags": ["Feedbacks"],
+                "summary": "Get Feedback by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "feedbackId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Feedback ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Feedback details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "rating": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 5
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": ["pending", "approved", "rejected"]
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Feedback not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedback/status/{feedbackId}": {
+            "put": {
+                "tags": ["Feedbacks"],
+                "summary": "Update Feedback",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "feedbackId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Feedback ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["status"],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": ["pending", "approved", "rejected"],
+                                        "description": "New feedback status"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Feedback status updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Feedback not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedback/delete/{feedbackId}": {
+            "delete": {
+                "tags": ["Feedbacks"],
+                "summary": "Delete a feedback Details",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "feedbackId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Feedback ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Feedback deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Feedback not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/create": {
+            "post": {
+                "tags": ["Reports"],
+                "summary": "Create a Report",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["patient", "doctor", "summary", "vitals", "diagnosis", "allergies", "medications", "lifestyleRecommendations", "reportDate"],
+                                "properties": {
+                                    "patient": {
+                                        "type": "string",
+                                        "description": "ID of the patient"
+                                    },
+                                    "doctor": {
+                                        "type": "string",
+                                        "description": "ID of the doctor"
+                                    },
+                                    "summary": {
+                                        "type": "string",
+                                        "description": "Summary of the medical report"
+                                    },
+                                    "vitals": {
+                                        "type": "string",
+                                        "description": "Patient's vital signs and measurements"
+                                    },
+                                    "diagnosis": {
+                                        "type": "string",
+                                        "description": "Medical diagnosis"
+                                    },
+                                    "allergies": {
+                                        "type": "string",
+                                        "description": "Patient's allergies"
+                                    },
+                                    "medications": {
+                                        "type": "string",
+                                        "description": "Prescribed medications"
+                                    },
+                                    "lifestyleRecommendations": {
+                                        "type": "string",
+                                        "description": "Lifestyle and health recommendations"
+                                    },
+                                    "reportDate": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Date of the report (YYYY-MM-DD)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Report created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/all": {
+            "get": {
+                "tags": ["Reports"],
+                "summary": "List all Reports",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all reports",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "patient": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "content": {
+                                                        "type": "string"
+                                                    },
+                                                    "diagnosis": {
+                                                        "type": "string"
+                                                    },
+                                                    "prescription": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/{id}": {
+            "get": {
+                "tags": ["Reports"],
+                "summary": "Get Report by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Report ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Report details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "patient": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "doctor": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "diagnosis": {
+                                                    "type": "string"
+                                                },
+                                                "prescription": {
+                                                    "type": "string"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Report not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/patient/{patientId}": {
+            "get": {
+                "tags": ["Reports"],
+                "summary": "Get Report by patient Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "patientId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of patient's reports",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "doctor": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "content": {
+                                                        "type": "string"
+                                                    },
+                                                    "diagnosis": {
+                                                        "type": "string"
+                                                    },
+                                                    "prescription": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/doctor/{doctorId}": {
+            "get": {
+                "tags": ["Reports"],
+                "summary": "Get Report by doctor Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "doctorId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of doctor's reports",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "patient": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "content": {
+                                                        "type": "string"
+                                                    },
+                                                    "diagnosis": {
+                                                        "type": "string"
+                                                    },
+                                                    "prescription": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/update/{id}": {
+            "put": {
+                "tags": ["Reports"],
+                "summary": "Update Report",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Report ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "description": "Updated report content"
+                                    },
+                                    "diagnosis": {
+                                        "type": "string",
+                                        "description": "Updated diagnosis"
+                                    },
+                                    "prescription": {
+                                        "type": "string",
+                                        "description": "Updated prescription"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Report updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Report not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/report/delete/{id}": {
+            "delete": {
+                "tags": ["Reports"],
+                "summary": "Delete a Report",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Report ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Report deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Report not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctor/create": {
+            "post": {
+                "tags": ["Doctors"],
+                "summary": "Create a Doctor Account",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["user", "licenseNumber", "specialization", "yearsOfExperience", "hospital"],
+                                "properties": {
+                                    "user": {
+                                        "type": "string",
+                                        "description": "ID of the user account"
+                                    },
+                                    "licenseNumber": {
+                                        "type": "string",
+                                        "description": "Doctor's medical license number"
+                                    },
+                                    "specialization": {
+                                        "type": "string",
+                                        "description": "Doctor's medical specialization"
+                                    },
+                                    "yearsOfExperience": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Number of years of medical experience"
+                                    },
+                                    "hospital": {
+                                        "type": "string",
+                                        "description": "Name of the hospital or clinic"
+                                    },
+                                    "availableSlots": {
+                                        "type": "array",
+                                        "description": "Doctor's available time slots",
+                                        "items": {
+                                            "type": "object",
+                                            "required": ["date", "from", "to"],
+                                            "properties": {
+                                                "date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "description": "Date of availability (YYYY-MM-DD)"
+                                                },
+                                                "from": {
+                                                    "type": "string",
+                                                    "description": "Start time of availability"
+                                                },
+                                                "to": {
+                                                    "type": "string",
+                                                    "description": "End time of availability"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "patients": {
+                                        "type": "array",
+                                        "description": "List of patient IDs assigned to the doctor",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Doctor account created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/password": {
+            "put": {
+                "tags": ["Users"],
+                "summary": "Update Authenticated User Password",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["current_password", "new_password"],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "description": "Current password"
+                                    },
+                                    "new_password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "description": "New password"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/delete/{id}": {
+            "delete": {
+                "tags": ["Users"],
+                "summary": "Delete a User Account",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "User ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User account deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sports/create": {
+            "post": {
+                "tags": ["Sports"],
+                "summary": "Create a new sport recommendation",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["patient", "recommendedSports"],
+                                "properties": {
+                                    "patient": {
+                                        "type": "string",
+                                        "description": "ID of the patient"
+                                    },
+                                    "recommendedSports": {
+                                        "type": "array",
+                                        "description": "List of recommended sports",
+                                        "items": {
+                                            "type": "object",
+                                            "required": ["name", "intensity", "benefits"],
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Name of the sport"
+                                                },
+                                                "intensity": {
+                                                    "type": "string",
+                                                    "enum": ["low", "medium", "high"],
+                                                    "description": "Intensity level of the sport"
+                                                },
+                                                "benefits": {
+                                                    "type": "string",
+                                                    "description": "Health benefits of the sport"
+                                                },
+                                                "duration": {
+                                                    "type": "string",
+                                                    "description": "Recommended duration"
+                                                },
+                                                "frequency": {
+                                                    "type": "string",
+                                                    "description": "Recommended frequency"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "notes": {
+                                        "type": "array",
+                                        "description": "Additional notes and recommendations",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "createdAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "Creation timestamp"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Sport recommendation created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sports/all": {
+            "get": {
+                "tags": ["Sports"],
+                "summary": "Get all sport recommendations",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all sport recommendations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": "string"
+                                                    },
+                                                    "benefits": {
+                                                        "type": "string"
+                                                    },
+                                                    "intensity": {
+                                                        "type": "string",
+                                                        "enum": ["low", "medium", "high"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sports/get/{id}": {
+            "get": {
+                "tags": ["Sports"],
+                "summary": "Get a sport recommendation by ID",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Sport recommendation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sport recommendation details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "type": "string"
+                                                },
+                                                "benefits": {
+                                                    "type": "string"
+                                                },
+                                                "intensity": {
+                                                    "type": "string",
+                                                    "enum": ["low", "medium", "high"]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Sport recommendation not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sports/update/{id}": {
+            "put": {
+                "tags": ["Sports"],
+                "summary": "Update a sport recommendation",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Sport recommendation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Updated name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Updated description"
+                                    },
+                                    "benefits": {
+                                        "type": "string",
+                                        "description": "Updated benefits"
+                                    },
+                                    "intensity": {
+                                        "type": "string",
+                                        "enum": ["low", "medium", "high"],
+                                        "description": "Updated intensity level"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Sport recommendation updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Sport recommendation not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sports/delete/{id}": {
+            "delete": {
+                "tags": ["Sports"],
+                "summary": "Delete a sport recommendation",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Sport recommendation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sport recommendation deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Sport recommendation not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foods/create": {
+            "post": {
+                "tags": ["Foods"],
+                "summary": "Create food recommendation",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["name", "description"],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Name of the food"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Description of the food"
+                                    },
+                                    "nutritional_value": {
+                                        "type": "string",
+                                        "description": "Nutritional information"
+                                    },
+                                    "health_benefits": {
+                                        "type": "string",
+                                        "description": "Health benefits of the food"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "description": "Food category"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Food recommendation created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foods/all": {
+            "get": {
+                "tags": ["Foods"],
+                "summary": "Get all food recommendations",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all food recommendations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": "string"
+                                                    },
+                                                    "nutritional_value": {
+                                                        "type": "string"
+                                                    },
+                                                    "health_benefits": {
+                                                        "type": "string"
+                                                    },
+                                                    "category": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foods/get/{id}": {
+            "get": {
+                "tags": ["Foods"],
+                "summary": "Get food recommendation by ID",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Food recommendation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food recommendation details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "type": "string"
+                                                },
+                                                "nutritional_value": {
+                                                    "type": "string"
+                                                },
+                                                "health_benefits": {
+                                                    "type": "string"
+                                                },
+                                                "category": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Food recommendation not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foods/update/{id}": {
+            "put": {
+                "tags": ["Foods"],
+                "summary": "Update food recommendation",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Food recommendation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Updated name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Updated description"
+                                    },
+                                    "nutritional_value": {
+                                        "type": "string",
+                                        "description": "Updated nutritional value"
+                                    },
+                                    "health_benefits": {
+                                        "type": "string",
+                                        "description": "Updated health benefits"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "description": "Updated category"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Food recommendation updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Food recommendation not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foods/delete/{id}": {
+            "delete": {
+                "tags": ["Foods"],
+                "summary": "Delete food recommendation",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Food recommendation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food recommendation deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Food recommendation not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/notify/get/{id}": {
+            "get": {
+                "tags": ["Notifications"],
+                "summary": "Get all notifications for a specific user",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "User ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user's notifications",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "description": "Type of notification"
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "description": "Notification message"
+                                                    },
+                                                    "is_seen": {
+                                                        "type": "boolean",
+                                                        "description": "Whether the notification has been seen"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/notify/{id}/seen": {
+            "put": {
+                "tags": ["Notifications"],
+                "summary": "Mark a notification as seen",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Notification ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notification marked as seen successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Notification not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/notify/{id}": {
+            "delete": {
+                "tags": ["Notifications"],
+                "summary": "Delete a notification",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Notification ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notification deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Notification not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/signup": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Create a User Account",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["username", "firstName", "lastName", "email", "password", "role", "gender", "dateOfBirth"],
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "description": "User's username"
+                                    },
+                                    "firstName": {
+                                        "type": "string",
+                                        "description": "User's first name"
+                                    },
+                                    "lastName": {
+                                        "type": "string",
+                                        "description": "User's last name"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "description": "User's email address"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "description": "User's password"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": ["patient", "doctor", "admin"],
+                                        "description": "User's role"
+                                    },
+                                    "gender": {
+                                        "type": "string",
+                                        "enum": ["Male", "Female", "Other"],
+                                        "description": "User's gender"
+                                    },
+                                    "dateOfBirth": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "User's date of birth (YYYY-MM-DD)"
+                                    },
+                                    "phoneNumber": {
+                                        "type": "string",
+                                        "description": "User's phone number"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "description": "User's address"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User account created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/all": {
+            "get": {
+                "tags": ["Users"],
+                "summary": "List all User Accounts",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all user accounts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/User"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/profile/{id}": {
+            "put": {
+                "tags": ["Users"],
+                "summary": "Update User Account",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "User ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "firstName": {
+                                        "type": "string",
+                                        "description": "Updated first name"
+                                    },
+                                    "lastName": {
+                                        "type": "string",
+                                        "description": "Updated last name"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "description": "Updated email"
+                                    },
+                                    "phoneNumber": {
+                                        "type": "string",
+                                        "description": "Updated phone number"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "description": "Updated address"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User account updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctor/all": {
+            "get": {
+                "tags": ["Doctors"],
+                "summary": "List all Doctors",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all doctors",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "specialization": {
+                                                        "type": "string"
+                                                    },
+                                                    "licenseNumber": {
+                                                        "type": "string"
+                                                    },
+                                                    "yearsOfExperience": {
+                                                        "type": "integer"
+                                                    },
+                                                    "hospital": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctor/getdoctor/{id}": {
+            "get": {
+                "tags": ["Doctors"],
+                "summary": "Get Doctor by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Doctor details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "specialization": {
+                                                    "type": "string"
+                                                },
+                                                "licenseNumber": {
+                                                    "type": "string"
+                                                },
+                                                "yearsOfExperience": {
+                                                    "type": "integer"
+                                                },
+                                                "hospital": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Doctor not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctor/getDoctorPatients/{id}": {
+            "get": {
+                "tags": ["Doctors"],
+                "summary": "Get Doctor Patients by Id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of doctor's patients",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user": {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    "medical_history": {
+                                                        "type": "string"
+                                                    },
+                                                    "allergies": {
+                                                        "type": "string"
+                                                    },
+                                                    "blood_type": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctor/put/{id}": {
+            "put": {
+                "tags": ["Doctors"],
+                "summary": "Update a doctor by id",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "specialization": {
+                                        "type": "string",
+                                        "description": "Updated specialization"
+                                    },
+                                    "licenseNumber": {
+                                        "type": "string",
+                                        "description": "Updated license number"
+                                    },
+                                    "yearsOfExperience": {
+                                        "type": "integer",
+                                        "description": "Updated years of experience"
+                                    },
+                                    "hospital": {
+                                        "type": "string",
+                                        "description": "Updated hospital"
+                                    },
+                                    "availableSlots": {
+                                        "type": "array",
+                                        "description": "Updated available time slots",
+                                        "items": {
+                                            "type": "object",
+                                            "required": ["date", "from", "to"],
+                                            "properties": {
+                                                "date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "description": "Date of availability"
+                                                },
+                                                "from": {
+                                                    "type": "string",
+                                                    "description": "Start time"
+                                                },
+                                                "to": {
+                                                    "type": "string",
+                                                    "description": "End time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Doctor updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Doctor not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/doctor/delete/{id}": {
+            "delete": {
+                "tags": ["Doctors"],
+                "summary": "Delete a Doctor Account",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Doctor account deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Success"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Doctor not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "User authentication"
+        },
+        {
+            "name": "Doctors",
+            "description": "Doctor management"
+        },
+        {
+            "name": "Patients",
+            "description": "Patient management"
+        },
+        {
+            "name": "Appointments",
+            "description": "Appointment management"
+        },
+        {
+            "name": "Reports",
+            "description": "Medical reports"
+        },
+        {
+            "name": "Feedbacks",
+            "description": "Feedback management"
+        },
+        {
+            "name": "Chats",
+            "description": "Chat management"
+        },
+        {
+            "name": "Messages",
+            "description": "Message management"
+        },
+        {
+            "name": "Sports",
+            "description": "Sport recommendations"
+        },
+        {
+            "name": "Foods",
+            "description": "Food recommendations"
+        },
+        {
+            "name": "Health",
+            "description": "Health applications and appointments"
+        },
+        {
+            "name": "Users",
+            "description": "User management"
+        },
+        {
+            "name": "Notifications",
+            "description": "Notification management"
+        }
+    ],
+    "examples": {
+        "success": {
+            "value": {
+                "message": "Operation successful",
+                "data": {}
+            }
+        },
+        "error": {
+            "value": {
+                "message": "Operation failed",
+                "errors": {}
+            }
+        }
+    }
+}
