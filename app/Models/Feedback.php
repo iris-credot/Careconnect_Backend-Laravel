@@ -2,40 +2,38 @@
 
 namespace App\Models;
 
-/**
- * @OA\Schema(
- *     schema="Feedback",
- *     required={"user_id", "title", "content", "rating"},
- *     @OA\Property(property="id", type="integer", format="int64", example=1),
- *     @OA\Property(property="user_id", type="integer", format="int64", example=1),
- *     @OA\Property(property="title", type="string", example="Great service!"),
- *     @OA\Property(property="content", type="string", example="The doctor was very professional and helpful."),
- *     @OA\Property(property="rating", type="integer", minimum=1, maximum=5, example=5),
- *     @OA\Property(property="status", type="string", enum={"pending", "reviewed", "resolved"}, example="pending"),
- *     @OA\Property(property="response", type="string", nullable=true, example="Thank you for your feedback!"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
-
+use Jenssegers\Mongodb\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
 class Feedback extends Model
 {
     use HasFactory;
 
+    protected $connection = 'mongodb'; // MongoDB connection
+    protected $collection = 'feedbacks'; // MongoDB collection name
+
     protected $fillable = [
-        'user_id',
-        'title',
-        'content',
+        'sender_id',
+        'receiver_id',
+        'feedback_text',
         'rating',
-        'status',
-        'response'
     ];
 
-    public function user()
+    protected $casts = [
+        'rating' => 'integer',
+    ];
+
+    public $timestamps = true;
+
+  
+    public function sender()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'sender_id');
     }
-} 
+
+   
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'receiver_id');
+    }
+}

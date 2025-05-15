@@ -2,36 +2,34 @@
 
 namespace App\Models;
 
+use Jenssegers\Mongodb\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-/**
- * @OA\Schema(
- *     schema="Sport",
- *     required={"name", "description", "benefits", "duration", "intensity"},
- *     @OA\Property(property="id", type="integer", format="int64", example=1),
- *     @OA\Property(property="name", type="string", example="Running"),
- *     @OA\Property(property="description", type="string", example="Aerobic exercise that improves cardiovascular health"),
- *     @OA\Property(property="benefits", type="string", example="Improves heart health, burns calories, strengthens muscles"),
- *     @OA\Property(property="duration", type="string", example="30 minutes"),
- *     @OA\Property(property="intensity", type="string", enum={"low", "medium", "high"}, example="medium"),
- *     @OA\Property(property="equipment", type="string", nullable=true, example="Running shoes"),
- *     @OA\Property(property="precautions", type="string", nullable=true, example="Warm up properly before starting"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
-class Sport extends Model
+class SportRecommendation extends Model
 {
     use HasFactory;
 
+    protected $connection = 'mongodb';      // Using MongoDB connection
+    protected $collection = 'sport_recommendations';  // Optional: specify collection name
+
+    // Mass assignable attributes
     protected $fillable = [
-        'name',
-        'description',
-        'benefits',
-        'duration',
-        'intensity',
-        'equipment',
-        'precautions'
+        'patient_id',
+        'recommended_sports',
+        'notes',
     ];
-} 
+
+    // Cast recommended_sports as array so it's handled properly
+    protected $casts = [
+        'recommended_sports' => 'array',
+    ];
+
+    // Automatically handle created_at and updated_at timestamps
+    public $timestamps = true;
+
+    // Define relation to Patient model
+    public function patient()
+    {
+        return $this->belongsTo(Patient::class, 'patient_id');
+    }
+}

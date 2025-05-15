@@ -2,54 +2,56 @@
 
 namespace App\Models;
 
+use Jenssegers\Mongodb\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-/**
- * @OA\Schema(
- *     schema="Doctor",
- *     required={"user_id", "specialization", "license_number"},
- *     @OA\Property(property="id", type="integer", format="int64", example=1),
- *     @OA\Property(property="user_id", type="integer", format="int64", example=1),
- *     @OA\Property(property="specialization", type="string", example="Cardiology"),
- *     @OA\Property(property="license_number", type="string", example="MD123456"),
- *     @OA\Property(property="experience_years", type="integer", example=10),
- *     @OA\Property(property="education", type="string", example="MD, Harvard Medical School"),
- *     @OA\Property(property="hospital_affiliation", type="string", example="General Hospital"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
+
 class Doctor extends Model
 {
     use HasFactory;
 
+ 
+    protected $connection = 'mongodb';
+
+    protected $collection = 'doctors';
+
+  
     protected $fillable = [
         'user_id',
         'specialization',
         'license_number',
         'experience_years',
         'education',
-        'hospital_affiliation'
+        'hospital_affiliation',
+        'is_available',
+        'consultation_fee'
     ];
 
+   
     protected $casts = [
-        'is_available' => 'boolean',
-        'consultation_fee' => 'decimal:2'
+        'experience_years'     => 'integer',
+        'is_available'         => 'boolean',
+        'consultation_fee'     => 'float',
     ];
 
+   
+    public $timestamps = true;
+
+  
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, '_id', 'user_id');
     }
 
+ 
     public function appointments()
     {
-        return $this->hasMany(Appointment::class);
+        return $this->hasMany(Appointment::class, 'doctor_id', '_id');
     }
 
+   
     public function prescriptions()
     {
-        return $this->hasMany(Prescription::class);
+        return $this->hasMany(Prescription::class, 'doctor_id', '_id');
     }
 }

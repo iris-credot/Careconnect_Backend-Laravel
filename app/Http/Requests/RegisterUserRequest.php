@@ -8,7 +8,7 @@ class RegisterUserRequest extends FormRequest
 {
     public function authorize()
     {
-        return true; // Allow all for now, or implement access logic
+        return true; 
     }
 
     public function rules()
@@ -22,7 +22,7 @@ class RegisterUserRequest extends FormRequest
 
     public function prepareForValidation()
     {
-        // Force 'role' to 'patient' and ignore incoming 'role'
+        
         $this->merge([
             'role' => 'patient',
         ]);

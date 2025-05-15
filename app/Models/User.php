@@ -2,100 +2,92 @@
 
 namespace App\Models;
 
-/**
- * @OA\Schema(
- *     schema="User",
- *     required={"name", "email", "password", "role"},
- *     @OA\Property(property="id", type="integer", format="int64", example=1),
- *     @OA\Property(property="name", type="string", example="John Doe"),
- *     @OA\Property(property="email", type="string", format="email", example="john@example.com"),
- *     @OA\Property(property="role", type="string", enum={"admin", "doctor", "patient"}, example="patient"),
- *     @OA\Property(property="phone", type="string", nullable=true, example="+1234567890"),
- *     @OA\Property(property="address", type="string", nullable=true, example="123 Main St"),
- *     @OA\Property(property="profile_picture", type="string", nullable=true, example="profile.jpg"),
- *     @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
-
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Jenssegers\Mongodb\Eloquent\Model;
+use Illuminate\Support\Facades\Hash;
 
-class User extends Authenticatable
+
+class User extends Model implements AuthenticatableContract
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable, Authenticatable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    protected $connection = 'mongodb';
+    protected $collection = 'users';
+
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'username',
+        'firstName',
+        'lastName',
+        'names',
+        'image',
+        'bio',
         'role',
-        'phone',
         'address',
-        'profile_picture',
+        'phoneNumber',
+        'dateOfBirth',
+        'email',
+        'gender',
+        'password',
+        'otpExpires',
+        'otp',
+        'verified',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
-        'remember_token',
+        'otp',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'verified' => 'boolean',
+        'dateOfBirth' => 'date',
     ];
+
+  
+    public function setPasswordAttribute($value)
+    {
+        if (!empty($value)) {
+            $this->attributes['password'] = Hash::make($value);
+        }
+    }
+
+  
+    public static function login($email, $password)
+    {
+        $user = self::where('email', $email)->first();
+
+        if (!$user) {
+            throw new \Exception('Incorrect email');
+        }
+
+        if (!Hash::check($password, $user->password)) {
+            throw new \Exception('Incorrect password');
+        }
+
+        return $user;
+    }
+
+ 
+    public static function validationRules()
+    {
+        return [
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:8',
+        ];
+    }
+
 
     public function doctor()
     {
-        return $this->hasOne(Doctor::class);
+        return $this->hasOne(Doctor::class, 'user_id', '_id');
     }
 
+   
     public function patient()
     {
-        return $this->hasOne(Patient::class);
-    }
-
-    public function sentMessages()
-    {
-        return $this->hasMany(Message::class, 'sender_id');
-    }
-
-    public function receivedMessages()
-    {
-        return $this->hasMany(Message::class, 'receiver_id');
-    }
-
-    public function isAdmin()
-    {
-        return $this->role === 'admin';
-    }
-
-    public function isDoctor()
-    {
-        return $this->role === 'doctor';
-    }
-
-    public function isPatient()
-    {
-        return $this->role === 'patient';
+        return $this->hasOne(Patient::class, 'user_id', '_id');
     }
 }
