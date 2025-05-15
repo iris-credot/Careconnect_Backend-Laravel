@@ -1,209 +1,258 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Otp;
+use App\Exceptions\BadRequestError;
+use App\Exceptions\NotFoundError;
+use App\Exceptions\UnauthorizedError;
+use App\Services\EmailService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Cloudinary\Cloudinary;
+use Exception;
 
-/**
- * @OA\Post(
- *     path="/api/user/signup",
- *     summary="Create a new user account",
- *     tags={"Users"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"name", "email", "password", "role"},
- *             @OA\Property(property="name", type="string", example="John Doe"),
- *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
- *             @OA\Property(property="password", type="string", format="password", example="password123"),
- *             @OA\Property(property="role", type="string", enum={"admin", "doctor", "patient"}, example="patient"),
- *             @OA\Property(property="phone", type="string", nullable=true, example="+1234567890"),
- *             @OA\Property(property="address", type="string", nullable=true, example="123 Main St")
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="User created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/User")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/user/all",
- *     summary="List all users",
- *     tags={"Users"},
- *     @OA\Response(
- *         response=200,
- *         description="List of all users",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/User")
- *         )
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/user/profile/{id}",
- *     summary="Update user profile",
- *     tags={"Users"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="name", type="string", example="John Doe"),
- *             @OA\Property(property="phone", type="string", example="+1234567890"),
- *             @OA\Property(property="address", type="string", example="123 Main St"),
- *             @OA\Property(property="profile_picture", type="string", example="profile.jpg")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User profile updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/User")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="User not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/user/password",
- *     summary="Update authenticated user's password",
- *     tags={"Users"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"current_password", "new_password", "new_password_confirmation"},
- *             @OA\Property(property="current_password", type="string", format="password", example="oldpassword123"),
- *             @OA\Property(property="new_password", type="string", format="password", example="newpassword123"),
- *             @OA\Property(property="new_password_confirmation", type="string", format="password", example="newpassword123")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Password updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Password updated successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Delete(
- *     path="/api/user/delete/{id}",
- *     summary="Delete a user account",
- *     tags={"Users"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User deleted successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="User deleted successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="User not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Post(
- */
 class UserController extends Controller
 {
-    public function signup(Request $request)
+    protected $cloudinary;
+
+    public function __construct()
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => 'required|in:admin,doctor,patient',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255'
+        $this->cloudinary = new Cloudinary([
+            'cloud' => [
+                'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                'api_key'    => env('CLOUDINARY_API_KEY'),
+                'api_secret' => env('CLOUDINARY_API_SECRET'),
+            ],
+            'url' => [
+                'secure' => true
+            ]
         ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'phone' => $request->phone,
-            'address' => $request->address
-        ]);
-
-        return response()->json($user, 201);
     }
 
-    public function all()
+    /**
+     * Upload file to Cloudinary and return secure URL
+     */
+    private function uploadToCloudinary($file)
+    {
+        if (!$file->isValid()) {
+            throw new BadRequestError('Invalid image file');
+        }
+
+        $publicId = 'CareConnect/' . Str::uuid();
+
+        $uploadResult = $this->cloudinary->uploadApi()->upload($file->getRealPath(), [
+            'public_id' => $publicId,
+            'folder' => 'CareConnect',
+            'resource_type' => 'image',
+        ]);
+
+        $url = $uploadResult['secure_url'] ?? null;
+
+        if (!$url) {
+            throw new Exception('Cloudinary upload failed');
+        }
+
+        return $url;
+    }
+
+    public function getAllUsers()
     {
         $users = User::all();
-        return response()->json($users);
+        return response()->json(['users' => $users], 200);
     }
 
-    public function updateProfile(Request $request, $id)
+    public function createUser(Request $request)
     {
         $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
-            'profile_picture' => 'nullable|string'
+            'email' => 'required|email|unique:users,email',
+            'username' => 'required|string',
+            'firstName' => 'required|string',
+            'lastName' => 'required|string',
+            'names' => 'nullable|string',
+            'profile' => 'nullable|string',
+            'address' => 'nullable|string',
+            'phoneNumber' => 'nullable|string',
+            'dateOfBirth' => 'nullable|date',
+            'password' => 'required|string|min:8',
+            'gender' => 'required|string',
+            'image' => 'required|image', 
         ]);
 
-        $user = User::findOrFail($id);
-        $user->update($request->all());
+        $email = strtolower($request->email);
 
-        return response()->json($user);
+        if (User::where('email', $email)->exists()) {
+            throw new BadRequestError('Email already in use');
+        }
+
+        // Generate OTP and expiration date (5 minutes)
+        $otp = random_int(100000, 999999);
+        $otpExpiration = Carbon::now()->addMinutes(5);
+
+        try {
+            $imageUrl = $this->uploadToCloudinary($request->file('image'));
+
+            $user = User::create([
+                'username' => $request->username,
+                'firstName' => $request->firstName,
+                'lastName' => $request->lastName,
+                'names' => $request->names,
+                'image' => $imageUrl,
+                'bio' => $request->profile,
+                'address' => $request->address,
+                'phoneNumber' => $request->phoneNumber,
+                'dateOfBirth' => $request->dateOfBirth,
+                'email' => $email,
+                'password' => $request->password, 
+                'gender' => $request->gender,
+                'otp' => $otp,
+                'otpExpires' => $otpExpiration,
+                'verified' => false,
+            ]);
+
+            $emailBody = "Your OTP is: {$otp}";
+            EmailService::sendEmail($email, "Care-Connect System: Verify your account", $emailBody);
+
+            return response()->json(['user' => $user, 'otp' => $otp], 201);
+
+        } catch (Exception $e) {
+            \Log::error('User creation failed: ' . $e->getMessage());
+            throw new BadRequestError('Failed to create user: ' . $e->getMessage());
+        }
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|integer',
+        ]);
+
+        $user = User::where('otp', $request->otp)->first();
+
+        if (!$user) {
+            throw new UnauthorizedError('Authorization denied');
+        }
+
+        if (Carbon::now()->greaterThan($user->otpExpires)) {
+            throw new UnauthorizedError('OTP expired');
+        }
+
+        $user->verified = true;
+        $user->otp = null;
+        $user->otpExpires = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'User account verified!',
+            'user' => $user,
+        ], 200);
+    }
+
+    public function deleteUser($id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            throw new NotFoundError('User not found');
+        }
+        $user->delete();
+
+        return response()->json(['user' => $user], 200);
     }
 
     public function updatePassword(Request $request)
     {
         $request->validate([
-            'current_password' => 'required|current_password',
-            'new_password' => ['required', 'confirmed', Password::defaults()]
+            'currentPassword' => 'required|string',
+            'newPassword' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = Auth::user();
-        $user->password = Hash::make($request->new_password);
+        $user = auth()->user();
+
+        if (!$user) {
+            throw new NotFoundError('User not found');
+        }
+
+        if (!Hash::check($request->currentPassword, $user->password)) {
+            return response()->json(['error' => 'Incorrect current password'], 400);
+        }
+
+        $user->password = $request->newPassword;
         $user->save();
 
-        return response()->json(['message' => 'Password updated successfully']);
+        return response()->json(['success' => true, 'message' => 'Password updated successfully'], 200);
     }
 
-    public function delete($id)
+    public function updateUser(Request $request, $id)
     {
-        $user = User::findOrFail($id);
-        $user->delete();
+        $user = User::find($id);
+        if (!$user) {
+            throw new NotFoundError('User not found');
+        }
 
-        return response()->json(['message' => 'User deleted successfully']);
+        $user->fill($request->except(['password', 'otp', 'otpExpires', 'verified']));
+        $user->save();
+
+        return response()->json($user, 200);
     }
-} 
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            throw new NotFoundError('Your email is not registered');
+        }
+
+        $token = Str::random(64);
+        $expiration = Carbon::now()->addMinutes(15);
+
+        Otp::updateOrCreate(
+            ['user_id' => $user->_id],
+            ['token' => $token, 'expirationDate' => $expiration]
+        );
+
+        $link = url("/auth/reset?token={$token}&id={$user->_id}");
+        $emailBody = "Click on the link below to reset your password:\n\n{$link}";
+
+        EmailService::sendEmail($request->email, "Reset your password", $emailBody);
+
+        return response()->json([
+            'message' => 'We sent you a reset password link on your email!',
+            'link' => $link,
+        ], 200);
+    }
+
+    public function resetPassword(Request $request, $token)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'newPassword' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $otpRecord = Otp::where('user_id', $user->_id)->where('token', $token)->first();
+        if (!$otpRecord) {
+            return response()->json(['message' => 'Invalid or expired token'], 400);
+        }
+
+        if (Carbon::now()->greaterThan($otpRecord->expirationDate)) {
+            return response()->json(['message' => 'Token has expired'], 400);
+        }
+
+        $user->password = $request->newPassword;
+        $user->save();
+
+        $otpRecord->delete();
+
+        return response()->json(['message' => 'Password reset successfully'], 200);
+    }
+}

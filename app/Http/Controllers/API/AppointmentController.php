@@ -1,453 +1,284 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\NotFoundException;
 use App\Models\Appointment;
-use App\Models\Doctor;
-use App\Models\Patient;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\NotificationController;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * @OA\Post(
- *     path="/api/appointment/create",
- *     summary="Create an Appointment Details",
- *     tags={"Appointments"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"doctor_id", "patient_id", "appointment_date", "time_slot"},
- *             @OA\Property(property="doctor_id", type="integer", example=1),
- *             @OA\Property(property="patient_id", type="integer", example=1),
- *             @OA\Property(property="appointment_date", type="string", format="date", example="2024-03-20"),
- *             @OA\Property(property="time_slot", type="string", example="10:00 AM"),
- *             @OA\Property(property="notes", type="string", example="Regular checkup"),
- *             @OA\Property(property="type", type="string", enum={"regular", "followup", "emergency"}, example="regular")
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Appointment created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Appointment")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/appointment/all",
- *     summary="List all Appointments",
- *     tags={"Appointments"},
- *     @OA\Response(
- *         response=200,
- *         description="List of all appointments",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Appointment")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/appointment/get/{id}",
- *     summary="Get Appointment by Id",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Appointment ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Appointment details",
- *         @OA\JsonContent(ref="#/components/schemas/Appointment")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Appointment not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/appointment/byPatient/{id}",
- *     summary="Get Appointment by Patient Id",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Patient ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="List of patient's appointments",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Appointment")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/appointment/filter",
- *     summary="Filter Appointments",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="date",
- *         in="query",
- *         required=false,
- *         description="Filter by date (YYYY-MM-DD)",
- *         @OA\Schema(type="string", format="date")
- *     ),
- *     @OA\Parameter(
- *         name="status",
- *         in="query",
- *         required=false,
- *         description="Filter by status",
- *         @OA\Schema(type="string", enum={"scheduled", "completed", "cancelled", "rescheduled"})
- *     ),
- *     @OA\Parameter(
- *         name="doctor_id",
- *         in="query",
- *         required=false,
- *         description="Filter by doctor ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Filtered list of appointments",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Appointment")
- *         )
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/appointment/update/{id}",
- *     summary="Update Appointment",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Appointment ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="appointment_date", type="string", format="date", example="2024-03-20"),
- *             @OA\Property(property="time_slot", type="string", example="10:00 AM"),
- *             @OA\Property(property="notes", type="string", example="Regular checkup"),
- *             @OA\Property(property="type", type="string", enum={"regular", "followup", "emergency"}, example="regular")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Appointment updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Appointment")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Appointment not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/appointment/status/{id}",
- *     summary="Update Appointment Status",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Appointment ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="string", enum={"scheduled", "completed", "cancelled", "rescheduled"}, example="completed")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Appointment status updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Appointment")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Appointment not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/appointment/appoint/{id}/reschedule",
- *     summary="Reschedule Appointment",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Appointment ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="new_date", type="string", format="date", example="2024-03-25"),
- *             @OA\Property(property="new_time_slot", type="string", example="02:00 PM"),
- *             @OA\Property(property="reason", type="string", example="Doctor unavailable")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Appointment rescheduled successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Appointment")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Appointment not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/appointment/appoint/{id}/reply",
- *     summary="Reply to the Reschedule Appointment",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Appointment ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="response", type="string", enum={"accept", "reject"}, example="accept"),
- *             @OA\Property(property="message", type="string", example="New schedule works for me")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Reply sent successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Appointment")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Appointment not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Delete(
- *     path="/api/appointment/delete/{id}",
- *     summary="Delete an Appointment",
- *     tags={"Appointments"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Appointment ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Appointment deleted successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Appointment deleted successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Appointment not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- */
 class AppointmentController extends Controller
 {
-    public function index()
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
     {
-        $user = Auth::user();
-        $appointments = [];
-
-        if ($user->isDoctor()) {
-            $appointments = $user->doctor->appointments()
-                ->with(['patient.user', 'prescription'])
-                ->latest()
-                ->get();
-        } elseif ($user->isPatient()) {
-            $appointments = $user->patient->appointments()
-                ->with(['doctor.user', 'prescription'])
-                ->latest()
-                ->get();
-        } else {
-            $appointments = Appointment::with(['doctor.user', 'patient.user', 'prescription'])
-                ->latest()
-                ->get();
-        }
-
-        return response()->json($appointments);
+        $this->notificationController = $notificationController;
     }
 
-    public function store(Request $request)
+    // Create a new appointment
+    public function createAppointment(Request $request)
     {
-        $request->validate([
-            'doctor_id' => ['required', 'exists:doctors,id'],
-            'appointment_date' => ['required', 'date', 'after:now'],
-            'reason' => ['required', 'string'],
-            'notes' => ['nullable', 'string'],
+        $validator = Validator::make($request->all(), [
+            'patient_id' => 'required',
+            'doctor_id' => 'required',
+            'date' => 'required|date',
+            'timeSlot' => 'required|string',
+            'reason' => 'nullable|string',
+            'status' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
-        $user = Auth::user();
-        if (!$user->isPatient()) {
-            return response()->json(['message' => 'Only patients can book appointments'], 403);
+        if ($validator->fails()) {
+            throw new BadRequestException('Missing or invalid required fields');
         }
 
-        $doctor = Doctor::findOrFail($request->doctor_id);
-        if (!$doctor->is_available) {
-            return response()->json(['message' => 'Doctor is not available for appointments'], 422);
-        }
+        $appointment = Appointment::create($request->only([
+            'patient_id', 'doctor_id', 'date', 'timeSlot', 'reason', 'status', 'notes'
+        ]));
 
-        // Check if the time slot is available
-        $existingAppointment = Appointment::where('doctor_id', $request->doctor_id)
-            ->where('appointment_date', $request->appointment_date)
-            ->where('status', '!=', 'cancelled')
-            ->first();
+        // Send notifications to patient and doctor
+        $this->notificationController->sendNotification([
+            'user' => $appointment->patient_id,
+            'message' => 'You have a new appointment scheduled.',
+            'type' => 'appointment',
+        ]);
 
-        if ($existingAppointment) {
-            return response()->json(['message' => 'This time slot is already booked'], 422);
-        }
-
-        $appointment = $user->patient->appointments()->create([
-            'doctor_id' => $request->doctor_id,
-            'appointment_date' => $request->appointment_date,
-            'reason' => $request->reason,
-            'notes' => $request->notes,
-            'status' => 'scheduled'
+        $this->notificationController->sendNotification([
+            'user' => $appointment->doctor_id,
+            'message' => 'A new appointment has been booked with you.',
+            'type' => 'appointment',
         ]);
 
         return response()->json([
-            'message' => 'Appointment booked successfully',
-            'appointment' => $appointment->load(['doctor.user', 'patient.user'])
-        ], 201);
+            'message' => 'Appointment created successfully',
+            'appointment' => $appointment,
+        ], Response::HTTP_CREATED);
     }
 
-    public function show(Appointment $appointment)
+    // Get all appointments
+    public function getAllAppointments()
     {
-        return response()->json($appointment->load(['doctor.user', 'patient.user', 'prescription']));
+        $appointments = Appointment::with(['patient', 'doctor'])->get();
+        return response()->json(['appointments' => $appointments], 200);
     }
 
-    public function update(Request $request, Appointment $appointment)
+    // Get appointment by ID
+    public function getAppointmentById($id)
     {
-        $request->validate([
-            'appointment_date' => ['sometimes', 'date', 'after:now'],
-            'reason' => ['sometimes', 'string'],
-            'notes' => ['nullable', 'string'],
+        $appointment = Appointment::with(['patient', 'doctor'])->find($id);
+
+        if (!$appointment) {
+            throw new NotFoundException("No appointment found with ID $id");
+        }
+
+        return response()->json(['appointment' => $appointment], 200);
+    }
+
+    // Update appointment
+    public function updateAppointment(Request $request, $id)
+    {
+        $appointment = Appointment::find($id);
+        if (!$appointment) {
+            throw new NotFoundException("No appointment found with ID $id");
+        }
+
+        $appointment->fill($request->all());
+        $appointment->save();
+
+        // Notify patient and doctor about update
+        $this->notificationController->sendNotification([
+            'user' => $appointment->patient_id,
+            'message' => 'Your appointment details have been updated.',
+            'type' => 'appointment',
         ]);
-
-        $user = Auth::user();
-        if ($user->isPatient() && $appointment->patient_id !== $user->patient->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if ($user->isDoctor() && $appointment->doctor_id !== $user->doctor->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $appointment->update($request->only(['appointment_date', 'reason', 'notes']));
+        $this->notificationController->sendNotification([
+            'user' => $appointment->doctor_id,
+            'message' => 'An appointment assigned to you has been updated.',
+            'type' => 'appointment',
+        ]);
 
         return response()->json([
             'message' => 'Appointment updated successfully',
-            'appointment' => $appointment->load(['doctor.user', 'patient.user'])
-        ]);
+            'appointment' => $appointment,
+        ], 200);
     }
 
-    public function destroy(Appointment $appointment)
+    // Delete appointment
+    public function deleteAppointment($id)
     {
-        $user = Auth::user();
-        if ($user->isPatient() && $appointment->patient_id !== $user->patient->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if ($user->isDoctor() && $appointment->doctor_id !== $user->doctor->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $appointment = Appointment::find($id);
+        if (!$appointment) {
+            throw new NotFoundException("No appointment found with ID $id");
         }
 
         $appointment->delete();
-        return response()->json(['message' => 'Appointment cancelled successfully']);
+
+        return response()->json(['message' => 'Appointment deleted successfully'], 200);
     }
 
-    public function updateStatus(Request $request, Appointment $appointment)
+    // Filter appointments by doctor, patient, status or date
+    public function filterAppointments(Request $request)
     {
-        $request->validate([
-            'status' => ['required', 'string', 'in:scheduled,completed,cancelled,no_show']
-        ]);
+        $query = Appointment::query();
 
-        $user = Auth::user();
-        if ($user->isDoctor() && $appointment->doctor_id !== $user->doctor->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if ($request->has('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+        if ($request->has('patient_id')) {
+            $query->where('patient_id', $request->patient_id);
+        }
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->has('date')) {
+            $query->whereDate('date', $request->date);
         }
 
-        $appointment->update(['status' => $request->status]);
+        $appointments = $query->with(['patient', 'doctor'])->get();
+
+        return response()->json(['appointments' => $appointments], 200);
+    }
+
+    // Change appointment status
+    public function changeAppointmentStatus(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:Pending,Confirmed,Completed,Cancelled,Rescheduled,Denied',
+        ]);
+
+        if ($validator->fails()) {
+            throw new BadRequestException('Invalid status value.');
+        }
+
+        $appointment = Appointment::find($id);
+        if (!$appointment) {
+            throw new NotFoundException("No appointment found with ID $id");
+        }
+
+        $appointment->status = $request->status;
+        $appointment->save();
 
         return response()->json([
-            'message' => 'Appointment status updated successfully',
-            'appointment' => $appointment->load(['doctor.user', 'patient.user'])
+            'message' => 'Status updated successfully',
+            'appointment' => $appointment,
+        ], 200);
+    }
+
+    // Get appointments by patient ID
+    public function getAppointmentsByPatientId($patientId)
+    {
+        $appointments = Appointment::with(['patient', 'doctor'])->where('patient_id', $patientId)->get();
+
+        if ($appointments->isEmpty()) {
+            throw new NotFoundException("No appointments found for patient ID $patientId");
+        }
+
+        return response()->json(['appointments' => $appointments], 200);
+    }
+
+    // Reschedule appointment
+    public function rescheduleAppointment(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'newDate' => 'required|date',
+            'newTimeSlot' => 'required|string',
         ]);
+
+        if ($validator->fails()) {
+            throw new BadRequestException('Missing required fields: newDate or newTimeSlot.');
+        }
+
+        $appointment = Appointment::find($id);
+        if (!$appointment) {
+            throw new NotFoundException("No appointment found with ID $id");
+        }
+
+        $appointment->newDate = $request->newDate;
+        $appointment->newTimeSlot = $request->newTimeSlot;
+        $appointment->status = 'Rescheduled';
+        $appointment->save();
+
+        $this->notificationController->sendNotification([
+            'user' => $appointment->patient_id,
+            'message' => 'Your appointment reschedule request is pending confirmation.',
+            'type' => 'appointment',
+        ]);
+        $this->notificationController->sendNotification([
+            'user' => $appointment->doctor_id,
+            'message' => 'A patient has requested to reschedule an appointment.',
+            'type' => 'appointment',
+        ]);
+
+        return response()->json([
+            'message' => 'Appointment rescheduled successfully',
+            'appointment' => $appointment,
+        ], 200);
     }
 
-    public function create(Request $request)
+    // Respond to reschedule request (accept or deny)
+    public function respondToRescheduleRequest(Request $request, $id)
     {
-        // Implementation
-    }
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:accept,deny',
+        ]);
 
-    public function all()
-    {
-        // Implementation
-    }
+        if ($validator->fails()) {
+            throw new BadRequestException('Invalid action. Must be "accept" or "deny".');
+        }
 
-    public function get($id)
-    {
-        // Implementation
-    }
+        $appointment = Appointment::find($id);
+        if (!$appointment) {
+            throw new NotFoundException("No appointment found with ID $id");
+        }
 
-    public function byPatient($id)
-    {
-        // Implementation
-    }
+        if (!$appointment->newDate || !$appointment->newTimeSlot) {
+            throw new BadRequestException('No reschedule request found for this appointment.');
+        }
 
-    public function filter(Request $request)
-    {
-        // Implementation
-    }
+        if ($request->action === 'accept') {
+            $appointment->date = $appointment->newDate;
+            $appointment->timeSlot = $appointment->newTimeSlot;
+            $appointment->status = 'Confirmed';
+            $appointment->newDate = null;
+            $appointment->newTimeSlot = null;
+            $appointment->save();
 
-    public function reschedule(Request $request, $id)
-    {
-        // Implementation
-    }
+            $this->notificationController->sendNotification([
+                'user' => $appointment->patient_id,
+                'message' => "Your reschedule request has been accepted. New appointment: {$appointment->date} at {$appointment->timeSlot}",
+                'type' => 'appointment',
+            ]);
+            $this->notificationController->sendNotification([
+                'user' => $appointment->doctor_id,
+                'message' => 'You accepted a reschedule request.',
+                'type' => 'appointment',
+            ]);
 
-    public function reply(Request $request, $id)
-    {
-        // Implementation
-    }
+            return response()->json(['message' => 'Reschedule accepted.', 'appointment' => $appointment], 200);
+        }
 
-    public function delete($id)
-    {
-        // Implementation
+        if ($request->action === 'deny') {
+            $appointment->status = 'Denied';
+            $appointment->newDate = null;
+            $appointment->newTimeSlot = null;
+            $appointment->save();
+
+            $this->notificationController->sendNotification([
+                'user' => $appointment->patient_id,
+                'message' => 'Your reschedule request has been denied.',
+                'type' => 'appointment',
+            ]);
+            $this->notificationController->sendNotification([
+                'user' => $appointment->doctor_id,
+                'message' => 'You denied a reschedule request.',
+                'type' => 'appointment',
+            ]);
+
+            return response()->json(['message' => 'Reschedule denied.', 'appointment' => $appointment], 200);
+        }
     }
 }

@@ -1,213 +1,142 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Chat;
-use App\Models\Message;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\NotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
+use App\Http\Controllers\NotificationController;
 
-/**
- * @OA\Post(
- *     path="/api/chat/create",
- *     summary="Create a new chat",
- *     tags={"Chats"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"recipient_id"},
- *             @OA\Property(property="recipient_id", type="integer", example=2)
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Chat created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Chat")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Post(
- *     path="/api/chat/message/{chatId}",
- *     summary="Create a new message in a chat",
- *     tags={"Chats"},
- *     @OA\Parameter(
- *         name="chatId",
- *         in="path",
- *         required=true,
- *         description="Chat ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"content"},
- *             @OA\Property(property="content", type="string", example="Hello, how are you?")
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Message sent successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Message")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Chat not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/chat/{chatId}",
- *     summary="Get chat by ID",
- *     tags={"Chats"},
- *     @OA\Parameter(
- *         name="chatId",
- *         in="path",
- *         required=true,
- *         description="Chat ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Chat details with messages",
- *         @OA\JsonContent(
- *             @OA\Property(property="chat", ref="#/components/schemas/Chat"),
- *             @OA\Property(
- *                 property="messages",
- *                 type="array",
- *                 @OA\Items(ref="#/components/schemas/Message")
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Chat not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/chat/user/{userId}",
- *     summary="Get all chats for a user",
- *     tags={"Chats"},
- *     @OA\Parameter(
- *         name="userId",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="List of user's chats",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Chat")
- *         )
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/chat/read/{chatId}",
- *     summary="Mark all messages as read in a chat",
- *     tags={"Chats"},
- *     @OA\Parameter(
- *         name="chatId",
- *         in="path",
- *         required=true,
- *         description="Chat ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Messages marked as read successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Messages marked as read successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Chat not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- */
 class ChatController extends Controller
 {
-    public function create(Request $request)
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
     {
-        $request->validate([
-            'recipient_id' => 'required|exists:users,id'
-        ]);
+        $this->notificationController = $notificationController;
+    }
+
+    // Create a new chat between two users
+    public function createChat(Request $request)
+    {
+        $participants = $request->input('participants');
+
+        if (!$participants || count($participants) !== 2) {
+            throw new BadRequestException('Exactly two participants are required to create a chat.');
+        }
+
+        // Check if chat already exists
+        $existingChat = Chat::where('participants', 'all', $participants)
+                            ->whereRaw(['participants' => ['$size' => 2]])
+                            ->first();
+
+        if ($existingChat) {
+            return response()->json([
+                'message' => 'Chat already exists',
+                'chat' => $existingChat
+            ], 200);
+        }
 
         $chat = Chat::create([
-            'user_id' => Auth::id(),
-            'recipient_id' => $request->recipient_id
+            'participants' => $participants,
+            'messages' => [],
+            'lastUpdated' => now(),
         ]);
 
-        return response()->json($chat, 201);
+        // Notify both users
+        foreach ($participants as $user) {
+            $this->notificationController->sendNotification([
+                'user' => $user,
+                'message' => 'You have a new message chat.',
+                'type' => 'chat',
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Chat created',
+            'chat' => $chat
+        ], 201);
     }
 
+    // Send a message in a chat
     public function sendMessage(Request $request, $chatId)
     {
-        $request->validate([
-            'content' => 'required|string'
-        ]);
+        $chat = Chat::find($chatId);
+        if (!$chat) throw new NotFoundException('Chat not found');
 
-        $chat = Chat::findOrFail($chatId);
-        
-        $message = $chat->messages()->create([
-            'sender_id' => Auth::id(),
-            'content' => $request->content
-        ]);
+        $sender = $request->input('sender');
+        $messageText = $request->input('message');
 
-        $chat->update([
-            'last_message' => $request->content,
-            'last_message_time' => now(),
-            'unread_count' => $chat->unread_count + 1
-        ]);
+        if (!$sender || !$messageText) {
+            throw new BadRequestException('Sender and message text are required.');
+        }
 
-        return response()->json($message, 201);
+        $newMessage = [
+            'sender' => $sender,
+            'message' => $messageText,
+            'sentAt' => now(),
+            'isRead' => false,
+        ];
+
+        $messages = $chat->messages ?? [];
+        $messages[] = $newMessage;
+
+        $chat->messages = $messages;
+        $chat->lastUpdated = now();
+        $chat->save();
+
+        return response()->json([
+            'message' => 'Message sent',
+            'chat' => $chat
+        ], 201);
     }
 
-    public function getChat($chatId)
+    // Get chat by ID
+    public function getChatById($chatId)
     {
-        $chat = Chat::with(['messages.sender', 'user', 'recipient'])
-            ->findOrFail($chatId);
+        $chat = Chat::find($chatId);
 
-        return response()->json($chat);
+        if (!$chat) throw new NotFoundException('Chat not found');
+
+        return response()->json([
+            'chat' => $chat
+        ], 200);
     }
 
+    // Mark all messages as read for a user
+    public function markMessagesAsRead(Request $request, $chatId)
+    {
+        $userId = $request->input('userId');
+        $chat = Chat::find($chatId);
+
+        if (!$chat) throw new NotFoundException('Chat not found');
+
+        $chat->messages = collect($chat->messages)->map(function ($msg) use ($userId) {
+            if ((string) $msg['sender'] !== (string) $userId) {
+                $msg['isRead'] = true;
+            }
+            return $msg;
+        })->toArray();
+
+        $chat->save();
+
+        return response()->json([
+            'message' => 'Messages marked as read',
+            'chat' => $chat
+        ], 200);
+    }
+
+    // Get all chats for a specific user
     public function getUserChats($userId)
     {
-        $chats = Chat::with(['user', 'recipient'])
-            ->where('user_id', $userId)
-            ->orWhere('recipient_id', $userId)
-            ->get();
+        $chats = Chat::where('participants', 'all', [(string) $userId])
+                     ->orderBy('lastUpdated', 'desc')
+                     ->get();
 
-        return response()->json($chats);
+        return response()->json([
+            'chats' => $chats
+        ], 200);
     }
-
-    public function markAsRead($chatId)
-    {
-        $chat = Chat::findOrFail($chatId);
-        
-        $chat->messages()
-            ->where('is_read', false)
-            ->where('sender_id', '!=', Auth::id())
-            ->update([
-                'is_read' => true,
-                'read_at' => now()
-            ]);
-
-        $chat->update(['unread_count' => 0]);
-
-        return response()->json(['message' => 'Messages marked as read successfully']);
-    }
-} 
+}

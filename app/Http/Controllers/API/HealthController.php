@@ -1,188 +1,135 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\NotFoundException;
 use App\Models\Health;
-use App\Models\Patient;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\NotificationController;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * @OA\Post(
- *     path="/api/health/create",
- *     summary="Create a Health Application",
- *     tags={"Health"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"patient_id", "health_condition", "allergies", "medications"},
- *             @OA\Property(property="patient_id", type="integer", example=1),
- *             @OA\Property(property="health_condition", type="string", example="Hypertension"),
- *             @OA\Property(property="allergies", type="string", example="Penicillin, Peanuts"),
- *             @OA\Property(property="medications", type="string", example="Lisinopril 10mg daily"),
- *             @OA\Property(property="family_history", type="string", nullable=true, example="Father had heart disease"),
- *             @OA\Property(property="lifestyle", type="string", nullable=true, example="Non-smoker, exercises 3 times a week")
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Health application created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Health")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/health/all",
- *     summary="List all Health Applications",
- *     tags={"Health"},
- *     @OA\Response(
- *         response=200,
- *         description="List of all health applications",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Health")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/health/health/{healthId}",
- *     summary="Get Health by patient Id",
- *     tags={"Health"},
- *     @OA\Parameter(
- *         name="healthId",
- *         in="path",
- *         required=true,
- *         description="Health record ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Health record details",
- *         @OA\JsonContent(ref="#/components/schemas/Health")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Health record not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/health/update/{healthId}",
- *     summary="Update Health",
- *     tags={"Health"},
- *     @OA\Parameter(
- *         name="healthId",
- *         in="path",
- *         required=true,
- *         description="Health record ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="health_condition", type="string", example="Hypertension"),
- *             @OA\Property(property="allergies", type="string", example="Penicillin, Peanuts"),
- *             @OA\Property(property="medications", type="string", example="Lisinopril 10mg daily"),
- *             @OA\Property(property="family_history", type="string", nullable=true, example="Father had heart disease"),
- *             @OA\Property(property="lifestyle", type="string", nullable=true, example="Non-smoker, exercises 3 times a week")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Health record updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Health")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Health record not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Delete(
- *     path="/api/health/delete/{healthId}",
- *     summary="Delete a Health Application",
- *     tags={"Health"},
- *     @OA\Parameter(
- *         name="healthId",
- *         in="path",
- *         required=true,
- *         description="Health record ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Health record deleted successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Health record deleted successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Health record not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- */
 class HealthController extends Controller
 {
-    public function create(Request $request)
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
     {
-        $request->validate([
-            'patient_id' => 'required|exists:patients,id',
-            'health_condition' => 'required|string',
-            'allergies' => 'required|string',
-            'medications' => 'required|string',
-            'family_history' => 'nullable|string',
-            'lifestyle' => 'nullable|string'
+        $this->notificationController = $notificationController;
+    }
+
+    // Create a new health record
+    public function createHealthRecord(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'patient_id' => 'required|string',
+            'chronic_diseases' => 'nullable|array',
+            'allergies' => 'nullable|array',
+            'medications' => 'nullable|array',
+            'surgeries' => 'nullable|array',
+            'family_history' => 'nullable|array',
+            'lifestyle' => 'nullable|array',
         ]);
 
-        $health = Health::create($request->all());
+        if ($validator->fails()) {
+            throw new BadRequestException('Validation failed: ' . $validator->errors()->first());
+        }
 
-        return response()->json($health, 201);
-    }
+        // Check if health record already exists for patient
+        $existing = Health::where('patient_id', $request->patient_id)->first();
+        if ($existing) {
+            throw new BadRequestException('Health record already exists for this patient');
+        }
 
-    public function all()
-    {
-        $healthRecords = Health::with('patient')->get();
-        return response()->json($healthRecords);
-    }
-
-    public function get($healthId)
-    {
-        $health = Health::with('patient')->findOrFail($healthId);
-        return response()->json($health);
-    }
-
-    public function update(Request $request, $healthId)
-    {
-        $request->validate([
-            'health_condition' => 'sometimes|string',
-            'allergies' => 'sometimes|string',
-            'medications' => 'sometimes|string',
-            'family_history' => 'nullable|string',
-            'lifestyle' => 'nullable|string'
+        $health = Health::create([
+            'patient_id' => $request->patient_id,
+            'chronic_diseases' => $request->chronic_diseases,
+            'allergies' => $request->allergies,
+            'medications' => $request->medications,
+            'surgeries' => $request->surgeries,
+            'family_history' => $request->family_history,
+            'lifestyle' => $request->lifestyle,
+            'updatedAt' => now(),
         ]);
 
-        $health = Health::findOrFail($healthId);
-        $health->update($request->all());
+        // Send notification
+        $this->notificationController->sendNotification([
+            'user' => $request->patient_id,
+            'message' => 'A new health record has been created for you.',
+            'type' => 'health',
+        ]);
 
-        return response()->json($health);
+        return response()->json([
+            'message' => 'Health record created',
+            'data' => $health,
+        ], Response::HTTP_CREATED);
     }
 
-    public function delete($healthId)
+    // Get all health records (admin)
+    public function getAllHealthRecords()
     {
-        $health = Health::findOrFail($healthId);
-        $health->delete();
-
-        return response()->json(['message' => 'Health record deleted successfully']);
+        $records = Health::with('patient')->get();
+        return response()->json(['data' => $records], 200);
     }
-} 
+
+    // Get health record by patient ID
+    public function getHealthByPatient($patientId)
+    {
+        $record = Health::with('patient')->where('patient_id', $patientId)->first();
+
+        if (!$record) {
+            throw new NotFoundException('Health record not found');
+        }
+
+        return response()->json(['data' => $record], 200);
+    }
+
+    // Update health record by patient ID
+    public function updateHealthRecord(Request $request, $patientId)
+    {
+        $record = Health::where('patient_id', $patientId)->first();
+
+        if (!$record) {
+            throw new NotFoundException('Health record not found');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'chronic_diseases' => 'nullable|array',
+            'allergies' => 'nullable|array',
+            'medications' => 'nullable|array',
+            'surgeries' => 'nullable|array',
+            'family_history' => 'nullable|array',
+            'lifestyle' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            throw new BadRequestException('Validation failed: ' . $validator->errors()->first());
+        }
+
+        $record->update($request->all());
+        $record->updatedAt = now();
+        $record->save();
+
+        return response()->json([
+            'message' => 'Health record updated',
+            'data' => $record,
+        ], 200);
+    }
+
+    // Delete health record by patient ID
+    public function deleteHealthRecord($patientId)
+    {
+        $record = Health::where('patient_id', $patientId)->first();
+
+        if (!$record) {
+            throw new NotFoundException('Health record not found');
+        }
+
+        $record->delete();
+
+        return response()->json([
+            'message' => 'Health record deleted',
+        ], 200);
+    }
+}

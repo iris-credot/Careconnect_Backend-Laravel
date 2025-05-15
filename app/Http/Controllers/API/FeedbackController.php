@@ -1,195 +1,122 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Feedback;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\NotificationController;
 
-/**
- * @OA\Post(
- *     path="/api/feedback/create",
- *     summary="Create a new feedback",
- *     tags={"Feedback"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"title", "content", "rating"},
- *             @OA\Property(property="title", type="string", example="Great service!"),
- *             @OA\Property(property="content", type="string", example="The doctor was very professional and helpful."),
- *             @OA\Property(property="rating", type="integer", minimum=1, maximum=5, example=5)
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Feedback created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Feedback")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/feedback/user/{userId}",
- *     summary="Get all feedbacks for a user",
- *     tags={"Feedback"},
- *     @OA\Parameter(
- *         name="userId",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="List of user's feedbacks",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Feedback")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/feedback/{feedbackId}",
- *     summary="Get feedback by ID",
- *     tags={"Feedback"},
- *     @OA\Parameter(
- *         name="feedbackId",
- *         in="path",
- *         required=true,
- *         description="Feedback ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Feedback details",
- *         @OA\JsonContent(ref="#/components/schemas/Feedback")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Feedback not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/feedback/status/{feedbackId}",
- *     summary="Update feedback status",
- *     tags={"Feedback"},
- *     @OA\Parameter(
- *         name="feedbackId",
- *         in="path",
- *         required=true,
- *         description="Feedback ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"status"},
- *             @OA\Property(property="status", type="string", enum={"pending", "reviewed", "resolved"}, example="reviewed"),
- *             @OA\Property(property="response", type="string", example="Thank you for your feedback!")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Feedback status updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Feedback")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Feedback not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Delete(
- *     path="/api/feedback/delete/{feedbackId}",
- *     summary="Delete a feedback",
- *     tags={"Feedback"},
- *     @OA\Parameter(
- *         name="feedbackId",
- *         in="path",
- *         required=true,
- *         description="Feedback ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Feedback deleted successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Feedback deleted successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Feedback not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- */
 class FeedbackController extends Controller
 {
-    public function create(Request $request)
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'rating' => 'required|integer|min:1|max:5'
+        $this->notificationController = $notificationController;
+    }
+
+    // Create new feedback
+    public function createFeedback(Request $request)
+    {
+        $validated = $request->validate([
+            'sender_id' => 'required|string',
+            'receiver_id' => 'required|string',
+            'feedback_text' => 'required|string',
+            'rating' => 'required|integer|min:1|max:5',
         ]);
 
         $feedback = Feedback::create([
-            'user_id' => Auth::id(),
-            'title' => $request->title,
-            'content' => $request->content,
-            'rating' => $request->rating,
-            'status' => 'pending'
+            'sender_id' => $validated['sender_id'],
+            'receiver_id' => $validated['receiver_id'],
+            'feedback_text' => $validated['feedback_text'],
+            'rating' => $validated['rating'],
         ]);
 
-        return response()->json($feedback, 201);
+        // Notify receiver
+        $this->notificationController->sendNotification([
+            'user' => $validated['receiver_id'],
+            'message' => "You have received new feedback from {$validated['sender_id']}",
+            'type' => 'feedback'
+        ]);
+
+        // Notify sender
+        $this->notificationController->sendNotification([
+            'user' => $validated['sender_id'],
+            'message' => 'Your feedback was successfully submitted.',
+            'type' => 'feedback'
+        ]);
+
+        return response()->json([
+            'message' => 'Feedback created successfully',
+            'feedback' => $feedback
+        ], 201);
     }
 
-    public function getUserFeedbacks($userId)
+    // Get all feedback for a particular user
+    public function getFeedbackByUser($userId)
     {
-        $feedbacks = Feedback::where('user_id', $userId)
-            ->with('user')
-            ->latest()
+        $feedbacks = Feedback::where('sender_id', $userId)
+            ->orWhere('receiver_id', $userId)
             ->get();
 
-        return response()->json($feedbacks);
+        if ($feedbacks->isEmpty()) {
+            throw new NotFoundException('No feedback found for this user.');
+        }
+
+        return response()->json(['feedbacks' => $feedbacks], 200);
     }
 
-    public function getFeedback($feedbackId)
+    // Get feedback by feedback ID
+    public function getFeedbackById($feedbackId)
     {
-        $feedback = Feedback::with('user')
-            ->findOrFail($feedbackId);
+        $feedback = Feedback::find($feedbackId);
 
-        return response()->json($feedback);
+        if (!$feedback) {
+            throw new NotFoundException('Feedback not found.');
+        }
+
+        return response()->json(['feedback' => $feedback], 200);
     }
 
-    public function updateStatus(Request $request, $feedbackId)
+    // Update the feedback status
+    public function updateFeedbackStatus(Request $request, $feedbackId)
     {
-        $request->validate([
-            'status' => 'required|in:pending,reviewed,resolved',
-            'response' => 'nullable|string'
-        ]);
+        $status = $request->input('status');
 
-        $feedback = Feedback::findOrFail($feedbackId);
-        $feedback->update($request->all());
+        if (!in_array($status, ['pending', 'resolved'])) {
+            throw new BadRequestException('Invalid status.');
+        }
 
-        return response()->json($feedback);
+        $feedback = Feedback::find($feedbackId);
+        if (!$feedback) {
+            throw new NotFoundException('Feedback not found.');
+        }
+
+        $feedback->status = $status;
+        $feedback->save();
+
+        return response()->json([
+            'message' => 'Feedback status updated successfully',
+            'feedback' => $feedback
+        ], 200);
     }
 
-    public function delete($feedbackId)
+    // Delete feedback
+    public function deleteFeedback($feedbackId)
     {
-        $feedback = Feedback::findOrFail($feedbackId);
+        $feedback = Feedback::find($feedbackId);
+
+        if (!$feedback) {
+            throw new NotFoundException('Feedback not found.');
+        }
+
         $feedback->delete();
 
-        return response()->json(['message' => 'Feedback deleted successfully']);
+        return response()->json([
+            'message' => 'Feedback deleted successfully',
+            'feedback' => $feedback
+        ], 200);
     }
-} 
+}

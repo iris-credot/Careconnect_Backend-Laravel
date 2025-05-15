@@ -1,245 +1,134 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\NotFoundException;
 use App\Models\Report;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\NotificationController;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * @OA\Post(
- *     path="/api/report/create",
- *     summary="Create a new medical report",
- *     tags={"Reports"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"patient_id", "doctor_id", "title", "content"},
- *             @OA\Property(property="patient_id", type="integer", example=1),
- *             @OA\Property(property="doctor_id", type="integer", example=1),
- *             @OA\Property(property="title", type="string", example="Medical Examination Report"),
- *             @OA\Property(property="content", type="string", example="Patient shows signs of improvement..."),
- *             @OA\Property(property="diagnosis", type="string", example="Common cold with mild fever"),
- *             @OA\Property(property="recommendations", type="string", example="Rest and take prescribed medications"),
- *             @OA\Property(property="attachments", type="array", @OA\Items(type="string"), example=["xray.jpg", "blood_test.pdf"])
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Report created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Report")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/report/all",
- *     summary="List all reports",
- *     tags={"Reports"},
- *     @OA\Response(
- *         response=200,
- *         description="List of all reports",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Report")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/report/{id}",
- *     summary="Get report by ID",
- *     tags={"Reports"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Report ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Report details retrieved successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Report")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Report not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/report/patient/{patientId}",
- *     summary="Get reports by patient ID",
- *     tags={"Reports"},
- *     @OA\Parameter(
- *         name="patientId",
- *         in="path",
- *         required=true,
- *         description="Patient ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="List of patient reports",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Report")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/report/doctor/{doctorId}",
- *     summary="Get reports by doctor ID",
- *     tags={"Reports"},
- *     @OA\Parameter(
- *         name="doctorId",
- *         in="path",
- *         required=true,
- *         description="Doctor ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="List of doctor's reports",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Report")
- *         )
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/report/update/{id}",
- *     summary="Update a report",
- *     tags={"Reports"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Report ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="title", type="string", example="Updated Medical Report"),
- *             @OA\Property(property="content", type="string", example="Updated patient condition..."),
- *             @OA\Property(property="diagnosis", type="string", example="Updated diagnosis"),
- *             @OA\Property(property="recommendations", type="string", example="Updated recommendations"),
- *             @OA\Property(property="attachments", type="array", @OA\Items(type="string"))
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Report updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Report")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Report not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Delete(
- *     path="/api/report/delete/{id}",
- *     summary="Delete a report",
- *     tags={"Reports"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Report ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Report deleted successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Report deleted successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Report not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- */
 class ReportController extends Controller
 {
-    public function create(Request $request)
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
     {
-        $request->validate([
-            'patient_id' => 'required|exists:patients,id',
-            'doctor_id' => 'required|exists:doctors,id',
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'diagnosis' => 'nullable|string',
-            'recommendations' => 'nullable|string',
-            'attachments' => 'nullable|array'
+        $this->notificationController = $notificationController;
+    }
+
+    // Create a new medical report
+    public function createReport(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'patient_id' => 'required|string',
+            'summary' => 'required|string',
+            // Add other fields as needed
         ]);
+
+        if ($validator->fails()) {
+            throw new BadRequestException('Validation failed: ' . $validator->errors()->first());
+        }
 
         $report = Report::create($request->all());
-        return response()->json($report, 201);
-    }
 
-    public function all()
-    {
-        $reports = Report::with(['patient.user', 'doctor.user'])->get();
-        return response()->json($reports);
-    }
-
-    public function show($id)
-    {
-        $report = Report::with(['patient.user', 'doctor.user'])->findOrFail($id);
-        return response()->json($report);
-    }
-
-    public function getByPatient($patientId)
-    {
-        $reports = Report::with(['doctor.user'])
-            ->where('patient_id', $patientId)
-            ->get();
-        return response()->json($reports);
-    }
-
-    public function getByDoctor($doctorId)
-    {
-        $reports = Report::with(['patient.user'])
-            ->where('doctor_id', $doctorId)
-            ->get();
-        return response()->json($reports);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'content' => 'sometimes|string',
-            'diagnosis' => 'nullable|string',
-            'recommendations' => 'nullable|string',
-            'attachments' => 'nullable|array'
+        // Send notification to patient
+        $this->notificationController->sendNotification([
+            'user' => $request->patient_id,
+            'message' => 'A new medical report has been created for you.',
+            'type' => 'report',
         ]);
 
-        $report = Report::findOrFail($id);
+        return response()->json([
+            'message' => 'Report created successfully',
+            'data' => $report,
+        ], Response::HTTP_CREATED);
+    }
+
+    // Get all reports
+    public function getAllReports()
+    {
+        $reports = Report::with(['patient', 'doctor'])->get();
+
+        return response()->json([
+            'total' => $reports->count(),
+            'data' => $reports,
+        ], 200);
+    }
+
+    // Get report by ID
+    public function getReportById($id)
+    {
+        $report = Report::with(['patient', 'doctor'])->find($id);
+
+        if (!$report) {
+            throw new NotFoundException('Report not found');
+        }
+
+        return response()->json($report, 200);
+    }
+
+    // Get reports by patient ID
+    public function getReportsByPatient($patientId)
+    {
+        $reports = Report::where('patient_id', $patientId)
+            ->with('doctor')
+            ->get();
+
+        if ($reports->isEmpty()) {
+            throw new NotFoundException('No reports found for this patient');
+        }
+
+        return response()->json($reports, 200);
+    }
+
+    // Get reports by doctor ID
+    public function getReportsByDoctor($doctorId)
+    {
+        $reports = Report::where('doctor_id', $doctorId)
+            ->with('patient')
+            ->get();
+
+        if ($reports->isEmpty()) {
+            throw new NotFoundException('No reports found for this doctor');
+        }
+
+        return response()->json($reports, 200);
+    }
+
+    // Update a report
+    public function updateReport(Request $request, $id)
+    {
+        $report = Report::find($id);
+
+        if (!$report) {
+            throw new NotFoundException('Report not found to update');
+        }
+
         $report->update($request->all());
 
-        return response()->json($report->fresh(['patient.user', 'doctor.user']));
+        return response()->json([
+            'message' => 'Report updated successfully',
+            'data' => $report,
+        ], 200);
     }
 
-    public function delete($id)
+    // Delete a report
+    public function deleteReport($id)
     {
-        $report = Report::findOrFail($id);
+        $report = Report::find($id);
+
+        if (!$report) {
+            throw new NotFoundException('Report not found to delete');
+        }
+
         $report->delete();
 
-        return response()->json(['message' => 'Report deleted successfully']);
+        return response()->json([
+            'message' => 'Report deleted successfully',
+            'data' => $report,
+        ], 200);
     }
-} 
+}

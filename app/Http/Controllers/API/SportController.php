@@ -1,191 +1,115 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Sport;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\NotFoundException;
+use App\Models\SportRecommendation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\NotificationController;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * @OA\Post(
- *     path="/api/sports/create",
- *     summary="Create a new sport recommendation",
- *     tags={"Sports"},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"name", "description", "benefits", "duration", "intensity"},
- *             @OA\Property(property="name", type="string", example="Running"),
- *             @OA\Property(property="description", type="string", example="Aerobic exercise that improves cardiovascular health"),
- *             @OA\Property(property="benefits", type="string", example="Improves heart health, burns calories, strengthens muscles"),
- *             @OA\Property(property="duration", type="string", example="30 minutes"),
- *             @OA\Property(property="intensity", type="string", enum={"low", "medium", "high"}, example="medium"),
- *             @OA\Property(property="equipment", type="string", nullable=true, example="Running shoes"),
- *             @OA\Property(property="precautions", type="string", nullable=true, example="Warm up properly before starting")
- *         )
- *     ),
- *     @OA\Response(
- *         response=201,
- *         description="Sport recommendation created successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Sport")
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/sports/all",
- *     summary="Get all sport recommendations",
- *     tags={"Sports"},
- *     @OA\Response(
- *         response=200,
- *         description="List of all sport recommendations",
- *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(ref="#/components/schemas/Sport")
- *         )
- *     )
- * )
- * 
- * @OA\Get(
- *     path="/api/sports/get/{id}",
- *     summary="Get a sport recommendation by ID",
- *     tags={"Sports"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Sport ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Sport recommendation details retrieved successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Sport")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Sport recommendation not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Put(
- *     path="/api/sports/update/{id}",
- *     summary="Update a sport recommendation",
- *     tags={"Sports"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Sport ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="name", type="string", example="Running"),
- *             @OA\Property(property="description", type="string", example="Updated description"),
- *             @OA\Property(property="benefits", type="string", example="Updated benefits"),
- *             @OA\Property(property="duration", type="string", example="45 minutes"),
- *             @OA\Property(property="intensity", type="string", enum={"low", "medium", "high"}),
- *             @OA\Property(property="equipment", type="string"),
- *             @OA\Property(property="precautions", type="string")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Sport recommendation updated successfully",
- *         @OA\JsonContent(ref="#/components/schemas/Sport")
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Sport recommendation not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- * 
- * @OA\Delete(
- *     path="/api/sports/delete/{id}",
- *     summary="Delete a sport recommendation",
- *     tags={"Sports"},
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Sport ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Sport recommendation deleted successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Sport recommendation deleted successfully")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Sport recommendation not found",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     )
- * )
- */
-class SportController extends Controller
+class SportRecommendationController extends Controller
 {
-    public function create(Request $request)
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'benefits' => 'required|string',
-            'duration' => 'required|string|max:50',
-            'intensity' => 'required|in:low,medium,high',
-            'equipment' => 'nullable|string',
-            'precautions' => 'nullable|string'
+        $this->notificationController = $notificationController;
+    }
+
+    // Create a new sport recommendation
+    public function createSportRecommendation(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'patient_id' => 'required|string',
+            'recommended_sports' => 'required|array|min:1',
+            'notes' => 'nullable|string',
         ]);
 
-        $sport = Sport::create($request->all());
-        return response()->json($sport, 201);
-    }
+        if ($validator->fails()) {
+            throw new BadRequestException('Validation failed: ' . $validator->errors()->first());
+        }
 
-    public function all()
-    {
-        $sports = Sport::all();
-        return response()->json($sports);
-    }
-
-    public function show($id)
-    {
-        $sport = Sport::findOrFail($id);
-        return response()->json($sport);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'description' => 'sometimes|string',
-            'benefits' => 'sometimes|string',
-            'duration' => 'sometimes|string|max:50',
-            'intensity' => 'sometimes|in:low,medium,high',
-            'equipment' => 'nullable|string',
-            'precautions' => 'nullable|string'
+        $sportRecommendation = SportRecommendation::create([
+            'patient_id' => $request->patient_id,
+            'recommended_sports' => $request->recommended_sports,
+            'notes' => $request->notes,
         ]);
 
-        $sport = Sport::findOrFail($id);
-        $sport->update($request->all());
+        // Send notification to patient
+        $this->notificationController->sendNotification([
+            'user' => $request->patient_id,
+            'message' => 'You have received a new sport recommendation.',
+            'type' => 'sport',
+        ]);
 
-        return response()->json($sport);
+        return response()->json([
+            'message' => 'Sport recommendation created successfully',
+            'sportRecommendation' => $sportRecommendation,
+        ], Response::HTTP_CREATED);
     }
 
-    public function delete($id)
+    // Get all sport recommendations
+    public function getAllSportRecommendations()
     {
-        $sport = Sport::findOrFail($id);
-        $sport->delete();
+        $recommendations = SportRecommendation::with('patient')->get();
 
-        return response()->json(['message' => 'Sport recommendation deleted successfully']);
+        return response()->json(['recommendations' => $recommendations], 200);
     }
-} 
+
+    // Get sport recommendation by ID
+    public function getSportRecommendationById($id)
+    {
+        $recommendation = SportRecommendation::with('patient')->find($id);
+
+        if (!$recommendation) {
+            throw new NotFoundException("No sport recommendation found with ID $id");
+        }
+
+        return response()->json(['recommendation' => $recommendation], 200);
+    }
+
+    // Update a sport recommendation
+    public function updateSportRecommendation(Request $request, $id)
+    {
+        $recommendation = SportRecommendation::find($id);
+
+        if (!$recommendation) {
+            throw new NotFoundException("No sport recommendation found with ID $id");
+        }
+
+        $validator = Validator::make($request->all(), [
+            'recommended_sports' => 'nullable|array|min:1',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            throw new BadRequestException('Validation failed: ' . $validator->errors()->first());
+        }
+
+        $recommendation->update($request->all());
+
+        return response()->json([
+            'message' => 'Sport recommendation updated successfully',
+            'sportRecommendation' => $recommendation,
+        ], 200);
+    }
+
+    // Delete a sport recommendation
+    public function deleteSportRecommendation($id)
+    {
+        $recommendation = SportRecommendation::find($id);
+
+        if (!$recommendation) {
+            throw new NotFoundException("No sport recommendation found with ID $id");
+        }
+
+        $recommendation->delete();
+
+        return response()->json([
+            'message' => 'Sport recommendation deleted successfully',
+        ], 200);
+    }
+}
