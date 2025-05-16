@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\NotFoundException;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\API\NotificationController;
 use Symfony\Component\HttpFoundation\Response;
 
 class AppointmentController extends Controller

@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
 
 use App\Models\Feedback;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\BadRequestException;
 use Illuminate\Http\Request;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\API\NotificationController;
 
 class FeedbackController extends Controller
 {

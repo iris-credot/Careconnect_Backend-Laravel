@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
 
 use App\Models\User;
 use App\Models\Otp;
-use App\Exceptions\BadRequestError;
-use App\Exceptions\NotFoundError;
-use App\Exceptions\UnauthorizedError;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\UnauthorizedException;
 use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;

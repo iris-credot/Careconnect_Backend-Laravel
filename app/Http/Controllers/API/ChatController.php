@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
 
 use App\Models\Chat;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\NotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\API\NotificationController;
 
 class ChatController extends Controller
 {
