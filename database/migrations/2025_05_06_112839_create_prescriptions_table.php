@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('prescriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('doctor_id')->constrained()->onDelete('cascade');
-            $table->foreignId('patient_id')->constrained()->onDelete('cascade');
-            $table->foreignId('appointment_id')->constrained()->onDelete('cascade');
-            $table->text('medications');
-            $table->text('dosage_instructions');
-            $table->text('notes')->nullable();
-            $table->date('valid_until');
+    $table->foreignId('patient_id')->constrained()->onDelete('cascade');
+    $table->foreignId('appointment_id')->constrained()->onDelete('cascade');
+    $table->text('medications');
+    $table->text('dosage_instructions');
+    $table->text('notes')->nullable();
+    $table->date('valid_until');
             $table->timestamps();
         });
     }

@@ -3,15 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Jenssegers\Mongodb\Eloquent\Model; // MongoDB-compatible base model
-
+use Illuminate\Database\Eloquent\Model;
 
 class Appointment extends Model
 {
     use HasFactory;
-
-    protected $connection = 'mongodb'; // If you're using MongoDB
-    protected $collection = 'appointments'; // Optional, specify collection name
 
     protected $fillable = [
         'patient_id',
@@ -33,15 +29,20 @@ class Appointment extends Model
         'updated_at' => 'datetime',
     ];
 
-   
+    public $timestamps = true;
+
     public function patient()
     {
         return $this->belongsTo(Patient::class, 'patient_id', '_id');
     }
 
-  
     public function doctor()
     {
         return $this->belongsTo(Doctor::class, 'doctor_id', '_id');
+    }
+
+    public static function statuses()
+    {
+        return ['pending', 'approved', 'rescheduled', 'cancelled', 'completed'];
     }
 }

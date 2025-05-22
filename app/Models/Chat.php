@@ -3,14 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Jenssegers\Mongodb\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Chat extends Model
 {
     use HasFactory;
-
-    protected $connection = 'mongodb';
-    protected $collection = 'chats';
 
     protected $fillable = [
         'participants',
@@ -22,6 +20,8 @@ class Chat extends Model
         'lastUpdated' => 'datetime',
         'participants' => 'array',
         'messages' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -36,8 +36,14 @@ class Chat extends Model
     public function getMessagesAttribute($value)
     {
         return collect($value)->map(function ($message) {
-            $message['sentAt'] = isset($message['sentAt']) ? \Carbon\Carbon::parse($message['sentAt']) : null;
+            $message['sentAt'] = isset($message['sentAt']) ? Carbon::parse($message['sentAt']) : null;
             return $message;
         });
+    }
+
+    // Optional: Load participant users if stored as user IDs
+    public function participantUsers()
+    {
+        return \App\Models\User::whereIn('id', $this->participants)->get();
     }
 }

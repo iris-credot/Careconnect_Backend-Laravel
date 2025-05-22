@@ -2,15 +2,12 @@
 
 namespace App\Models;
 
-use Jenssegers\Mongodb\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Health extends Model
 {
     use HasFactory;
-
-    protected $connection = 'mongodb'; 
-    protected $collection = 'healths'; 
 
     protected $fillable = [
         'patient_id',
@@ -20,21 +17,18 @@ class Health extends Model
         'surgeries',
         'family_history',
         'lifestyle',
-        'updatedAt',
     ];
 
     protected $casts = [
-        'chronic_diseases' => 'array', 
-        'allergies' => 'array',        
-        'medications' => 'array',      
-        'family_history' => 'array',   
-        'lifestyle' => 'array',        
-        'updatedAt' => 'datetime',
+        'chronic_diseases' => 'array',
+        'allergies' => 'array',
+        'medications' => 'array',
+        'family_history' => 'array',
+        'lifestyle' => 'array',
     ];
 
     public $timestamps = true;
 
-  
     public function patient()
     {
         return $this->belongsTo(Patient::class, 'patient_id');

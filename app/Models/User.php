@@ -3,19 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
-
 use Illuminate\Support\Facades\Hash;
-
 
 class User extends Model implements AuthenticatableContract
 {
     use HasFactory, Notifiable, Authenticatable;
-
-    protected $connection = 'mongodb';
-    protected $collection = 'users';
 
     protected $fillable = [
         'username',
@@ -46,7 +42,6 @@ class User extends Model implements AuthenticatableContract
         'dateOfBirth' => 'date',
     ];
 
-  
     public function setPasswordAttribute($value)
     {
         if (!empty($value)) {
@@ -54,23 +49,6 @@ class User extends Model implements AuthenticatableContract
         }
     }
 
-  
-    public static function login($email, $password)
-    {
-        $user = self::where('email', $email)->first();
-
-        if (!$user) {
-            throw new \Exception('Incorrect email');
-        }
-
-        if (!Hash::check($password, $user->password)) {
-            throw new \Exception('Incorrect password');
-        }
-
-        return $user;
-    }
-
- 
     public static function validationRules()
     {
         return [
@@ -79,15 +57,13 @@ class User extends Model implements AuthenticatableContract
         ];
     }
 
-
     public function doctor()
     {
-        return $this->hasOne(Doctor::class, 'user_id', '_id');
+        return $this->hasOne(Doctor::class); // defaults to user_id
     }
 
-   
     public function patient()
     {
-        return $this->hasOne(Patient::class, 'user_id', '_id');
+        return $this->hasOne(Patient::class); // defaults to user_id
     }
 }

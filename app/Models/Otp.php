@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-use Jenssegers\Mongodb\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Otp extends Model
 {
     use HasFactory;
-
-    protected $connection = 'mongodb';   // MongoDB connection
-    protected $collection = 'otps';      // Collection name (plural)
+    // Collection name (plural)
 
     protected $fillable = [
         'user_id',
