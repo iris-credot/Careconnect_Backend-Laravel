@@ -18,7 +18,6 @@ class User extends Model implements AuthenticatableContract
         'firstName',
         'lastName',
         'names',
-        'image',
         'bio',
         'role',
         'address',

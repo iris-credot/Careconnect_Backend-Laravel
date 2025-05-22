@@ -2,7 +2,7 @@
 
 namespace App\Exceptions;
 
-class NotFoundError extends CustomError
+class NotFoundException extends CustomError
 {
     public function __construct($message = 'Resource Not Found')
     {

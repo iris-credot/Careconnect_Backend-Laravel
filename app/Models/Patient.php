@@ -25,15 +25,8 @@ class Patient extends Model
     ];
 
     protected $attributes = [
-        'emergencyContact' => [
-            'name' => null,
-            'relation' => null,
-            'phone' => null,
-        ],
-        'insurance' => [
-            'provider' => null,
-            'policyNumber' => null,
-        ],
+        'insurance' => '{"provider": null, "policyNumber": null}',
+        'emergencyContact' => '{"name": null, "relation": null, "phone": null}',
     ];
 
     public $timestamps = true;

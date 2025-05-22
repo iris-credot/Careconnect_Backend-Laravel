@@ -2,7 +2,7 @@
 
 namespace App\Exceptions;
 
-class BadRequestError extends CustomError
+class BadRequestException extends CustomError
 {
     public function __construct($message = 'Bad Request')
     {

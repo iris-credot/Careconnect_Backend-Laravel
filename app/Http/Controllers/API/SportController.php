@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\API\NotificationController;
 use Symfony\Component\HttpFoundation\Response;
 
-class SportRecommendationController extends Controller
+class SportController extends Controller
 {
     protected $notificationController;
 

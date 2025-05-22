@@ -34,7 +34,7 @@ class PatientController extends Controller
     public function createPatient(Request $request)
     {
         $validated = Validator::make($request->all(), [
-            'user' => 'required|string|exists:users,_id',
+            'user' => 'required|string|exists:users,id',
             'bloodType' => 'nullable|string',
             'emergencyContact' => 'nullable|array',
             'insurance' => 'nullable|array',
@@ -51,7 +51,7 @@ class PatientController extends Controller
             throw new NotFoundException('User not found');
         }
 
-        $existingPatient = Patient::where('user_id', $user->_id)->first();
+        $existingPatient = Patient::where('user_id', $user->id)->first();
         if ($existingPatient) {
             throw new BadRequestException('Patient record already exists for this user');
         }
@@ -63,7 +63,7 @@ class PatientController extends Controller
         }
 
         $patient = Patient::create([
-            'user_id' => $user->_id,
+            'user_id' => $user->id,
             'bloodType' => $request->bloodType,
             'emergencyContact' => $request->emergencyContact,
             'insurance' => $request->insurance,

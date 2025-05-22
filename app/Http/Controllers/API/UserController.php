@@ -3,64 +3,20 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\User;
 use App\Models\Otp;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\UnauthorizedException;
-use App\Services\EmailService;
+use App\Http\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Cloudinary\Cloudinary;
 use Exception;
 
 class UserController extends Controller
 {
-    protected $cloudinary;
-
-    public function __construct()
-    {
-        $this->cloudinary = new Cloudinary([
-            'cloud' => [
-                'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
-                'api_key'    => env('CLOUDINARY_API_KEY'),
-                'api_secret' => env('CLOUDINARY_API_SECRET'),
-            ],
-            'url' => [
-                'secure' => true
-            ]
-        ]);
-    }
-
-    /**
-     * Upload file to Cloudinary and return secure URL
-     */
-    private function uploadToCloudinary($file)
-    {
-        if (!$file->isValid()) {
-            throw new BadRequestError('Invalid image file');
-        }
-
-        $publicId = 'CareConnect/' . Str::uuid();
-
-        $uploadResult = $this->cloudinary->uploadApi()->upload($file->getRealPath(), [
-            'public_id' => $publicId,
-            'folder' => 'CareConnect',
-            'resource_type' => 'image',
-        ]);
-
-        $url = $uploadResult['secure_url'] ?? null;
-
-        if (!$url) {
-            throw new Exception('Cloudinary upload failed');
-        }
-
-        return $url;
-    }
-
     public function getAllUsers()
     {
         $users = User::all();
@@ -81,34 +37,29 @@ class UserController extends Controller
             'dateOfBirth' => 'nullable|date',
             'password' => 'required|string|min:8',
             'gender' => 'required|string',
-            'image' => 'required|image', 
         ]);
 
         $email = strtolower($request->email);
 
         if (User::where('email', $email)->exists()) {
-            throw new BadRequestError('Email already in use');
+            throw new BadRequestException('Email already in use');
         }
 
-        // Generate OTP and expiration date (5 minutes)
         $otp = random_int(100000, 999999);
         $otpExpiration = Carbon::now()->addMinutes(5);
 
         try {
-            $imageUrl = $this->uploadToCloudinary($request->file('image'));
-
             $user = User::create([
                 'username' => $request->username,
                 'firstName' => $request->firstName,
                 'lastName' => $request->lastName,
                 'names' => $request->names,
-                'image' => $imageUrl,
                 'bio' => $request->profile,
                 'address' => $request->address,
                 'phoneNumber' => $request->phoneNumber,
                 'dateOfBirth' => $request->dateOfBirth,
                 'email' => $email,
-                'password' => $request->password, 
+                'password' => $request->password,
                 'gender' => $request->gender,
                 'otp' => $otp,
                 'otpExpires' => $otpExpiration,
@@ -122,7 +73,7 @@ class UserController extends Controller
 
         } catch (Exception $e) {
             \Log::error('User creation failed: ' . $e->getMessage());
-            throw new BadRequestError('Failed to create user: ' . $e->getMessage());
+            throw new BadRequestException('Failed to create user: ' . $e->getMessage());
         }
     }
 
@@ -135,11 +86,11 @@ class UserController extends Controller
         $user = User::where('otp', $request->otp)->first();
 
         if (!$user) {
-            throw new UnauthorizedError('Authorization denied');
+            throw new UnauthorizedException('Authorization denied');
         }
 
         if (Carbon::now()->greaterThan($user->otpExpires)) {
-            throw new UnauthorizedError('OTP expired');
+            throw new UnauthorizedException('OTP expired');
         }
 
         $user->verified = true;
@@ -157,7 +108,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (!$user) {
-            throw new NotFoundError('User not found');
+            throw new NotFoundException('User not found');
         }
         $user->delete();
 
@@ -174,7 +125,7 @@ class UserController extends Controller
         $user = auth()->user();
 
         if (!$user) {
-            throw new NotFoundError('User not found');
+            throw new NotFoundException('User not found');
         }
 
         if (!Hash::check($request->currentPassword, $user->password)) {
@@ -191,7 +142,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (!$user) {
-            throw new NotFoundError('User not found');
+            throw new NotFoundException('User not found');
         }
 
         $user->fill($request->except(['password', 'otp', 'otpExpires', 'verified']));
@@ -207,7 +158,7 @@ class UserController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            throw new NotFoundError('Your email is not registered');
+            throw new NotFoundException('Your email is not registered');
         }
 
         $token = Str::random(64);

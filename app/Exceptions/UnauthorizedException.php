@@ -2,7 +2,7 @@
 
 namespace App\Exceptions;
 
-class UnauthorizedError extends CustomError
+class UnauthorizedException extends CustomError
 {
     public function __construct($message = 'Unauthorized')
     {

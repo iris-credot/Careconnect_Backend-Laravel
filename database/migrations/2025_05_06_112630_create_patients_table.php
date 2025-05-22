@@ -18,18 +18,23 @@ return new class extends Migration
             $table->enum('gender', ['male', 'female', 'other']);
             $table->string('blood_group')->nullable();
             $table->text('allergies')->nullable();
+         
             $table->text('medical_history')->nullable();
-            $table->string('emergency_contact_name')->nullable();
-            $table->string('emergency_contact_phone')->nullable();
+              $table->json('insurance')->nullable();
+        $table->json('emergencyContact')->nullable();
             $table->timestamps();
         });
     }
 
     /**
      * Reverse the migrations.
+     * 
      */
-    public function down(): void
+      public function down(): void
     {
-        Schema::dropIfExists('patients');
+        Schema::table('patients', function (Blueprint $table) {
+            $table->dropColumn(['insurance', 'emergencyContact']);
+        });
     }
+ 
 };

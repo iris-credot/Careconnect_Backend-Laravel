@@ -1,12 +1,13 @@
 <?php
 
+namespace App\Http\Controllers\API;
+
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\API\BaseController;
 
 class AuthController extends BaseController
@@ -49,10 +50,7 @@ class AuthController extends BaseController
      *             @OA\Property(property="message", type="string", example="Registration successful")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error"
-     *     )
+     *     @OA\Response(response=422, description="Validation error")
      * )
      */
     public function register(Request $request)
@@ -61,7 +59,7 @@ class AuthController extends BaseController
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', 'string', 'in:doctor,patient'],
+            'role' => ['required', 'in:doctor,patient'],
             'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:255'],
         ]);
@@ -75,7 +73,6 @@ class AuthController extends BaseController
             'address' => $request->address,
         ]);
 
-        // Create associated profile based on role
         if ($request->role === 'doctor') {
             $user->doctor()->create([
                 'specialization' => $request->specialization,
@@ -95,8 +92,8 @@ class AuthController extends BaseController
 
         return $this->sendResponse([
             'user' => $user,
-            'token' => $token
-        ], 'Registration successful');
+            'token' => $token,
+        ], 'Registration successful', 201);
     }
 
     /**
@@ -125,21 +122,18 @@ class AuthController extends BaseController
      *             @OA\Property(property="message", type="string", example="Login successful")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Invalid credentials"
-     *     )
+     *     @OA\Response(response=401, description="Invalid credentials")
      * )
      */
     public function login(Request $request)
     {
         $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required'],
         ]);
 
         if (!Auth::attempt($request->only('email', 'password'))) {
-            return $this->sendError('Unauthorized', ['error' => 'The provided credentials are incorrect.'], 401);
+            return $this->sendError('Unauthorized', ['error' => 'Invalid credentials'], 401);
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
@@ -147,7 +141,7 @@ class AuthController extends BaseController
 
         return $this->sendResponse([
             'user' => $user,
-            'token' => $token
+            'token' => $token,
         ], 'Login successful');
     }
 
@@ -172,7 +166,6 @@ class AuthController extends BaseController
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-
         return $this->sendResponse(null, 'Successfully logged out');
     }
 
@@ -188,19 +181,10 @@ class AuthController extends BaseController
      *         @OA\JsonContent(
      *             @OA\Property(property="name", type="string", example="John Doe"),
      *             @OA\Property(property="phone", type="string", example="+1234567890"),
-     *             @OA\Property(property="address", type="string", example="123 Main St"),
-     *             @OA\Property(property="profile_photo", type="string", format="binary")
+     *             @OA\Property(property="address", type="string", example="123 Main St")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Profile updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="data", type="object"),
-     *             @OA\Property(property="message", type="string", example="Profile updated successfully")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Profile updated successfully")
      * )
      */
     public function updateProfile(Request $request)
@@ -231,20 +215,12 @@ class AuthController extends BaseController
      *     summary="Get user profile",
      *     tags={"User Profile"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="User profile retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="data", type="object"),
-     *             @OA\Property(property="message", type="string", example="Profile retrieved successfully")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Profile retrieved successfully")
      * )
      */
     public function getProfile(Request $request)
     {
-        $user = $request->user();
-        return $this->sendResponse($user->load(['doctor', 'patient']), 'Profile retrieved successfully');
+        $user = $request->user()->load(['doctor', 'patient']);
+        return $this->sendResponse($user, 'Profile retrieved successfully');
     }
 }
